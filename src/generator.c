@@ -1145,6 +1145,10 @@ uint8_t *writeCode(Scope *scope, uint8_t *pos)
   if (scope == NULL) return pos;
   memcpyFlattenCode(pos, scope->first_code_pool);
   pos += scope->vm_code_size;
+  for (int i = 0; i < scope->vm_code_size % 4; i++) {
+    *pos = 0;
+    pos++;
+  }
   pos = writeCode(scope->first_lower, pos);
   pos = writeCode(scope->next, pos);
   return pos;
