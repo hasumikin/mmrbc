@@ -8,10 +8,6 @@
 #include "../src/mrubyc/src/alloc.h"
 
 #include "../src/mmrbc.h"
-#include "../src/common.h"
-#include "../src/debug.h"
-#include "../src/stream.h"
-#include "../src/compiler.h"
 
 #include "../src/ruby-lemon-parse/parse_header.h"
 

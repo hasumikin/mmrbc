@@ -401,7 +401,7 @@ retry:
     value[3] = 'n';
     value[4] = '\0';
     type = NL;
-  } else if (tokenizer_is_operator(&(self->line[self->pos]), 3)) {
+  } else if (self->state != EXPR_DOT && self->state != EXPR_FNAME && tokenizer_is_operator(&(self->line[self->pos]), 3)) {
     value[0] = self->line[self->pos];
     value[1] = self->line[self->pos + 1];
     value[2] = self->line[self->pos + 2];
@@ -413,7 +413,7 @@ retry:
     } else if (value[2] == '=') {
       type = OP_ASGN;
     }
-  } else if (tokenizer_is_operator(&(self->line[self->pos]), 2)) {
+  } else if (self->state != EXPR_DOT && self->state != EXPR_FNAME && tokenizer_is_operator(&(self->line[self->pos]), 2)) {
     value[0] = self->line[self->pos];
     value[1] = self->line[self->pos + 1];
     value[2] = '\0';
@@ -458,20 +458,18 @@ retry:
       case '&':
         if (value[1] == '&') {
           type = ANDOP;
-          self->state = EXPR_BEG;
         } else {
           type = OP_ASGN;
-          self->state = EXPR_BEG;
         }
+        self->state = EXPR_BEG;
         break;
       case '|':
         if (value[1] == '|') {
           type = OROP;
-          self->state = EXPR_BEG;
         } else {
           type = OP_ASGN;
-          self->state = EXPR_BEG;
         }
+        self->state = EXPR_BEG;
         break;
       default:
         FATALP("error");
@@ -521,6 +519,19 @@ retry:
       Regex_match3(&(self->line[self->pos]), "^(\\s+)", regexResult);
       strsafecpy(value, regexResult[0].value, MAX_TOKEN_LENGTH);
       type = ON_SP;
+    } else if (self->state == EXPR_FNAME || self->state == EXPR_DOT) {
+      /* TODO: singleton method */
+      if ( (Regex_match3(&(self->line[self->pos]), "^(\\w+[!?=]?)", regexResult))
+            || (Regex_match3(&(self->line[self->pos]), "^(===?)", regexResult)) ) {
+        strsafecpy(value, regexResult[0].value, MAX_TOKEN_LENGTH);
+        type = IDENTIFIER;
+        self->state = EXPR_ENDFN;
+      } else {
+        ERRORP("Failed to tokenize!");
+        Token_free(lazyToken);
+        self->pos += 1; /* skip one */
+        return 1;
+      }
     } else if (tokenizer_is_paren(self->line[self->pos])) {
       value[0] = self->line[self->pos];
       value[1] = '\0';
@@ -842,13 +853,13 @@ retry:
 //        case KW_rescue:
           self->state = EXPR_MID;
           break;
-        case KW_end:
-        case KW_redo:
-//        case KW_def:
+        case KW_def:
 //        case KW_alias:
 //        case KW_undef:
-//          self->state = EXPR_FNAME;
-//          break;
+          self->state = EXPR_FNAME;
+          break;
+        case KW_end:
+        case KW_redo:
         default:
           self->state = EXPR_END;
       }

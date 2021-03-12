@@ -115,6 +115,7 @@ bool Compiler_compile(ParserState *p, StreamInterface *si)
               string = ParsePushStringPool(p, topToken->value);
               break;
             case COMMENT:
+              string = NULL;
               break;
             default:
               string = topToken->value;

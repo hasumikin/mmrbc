@@ -282,15 +282,29 @@
     return list2(atom(ATOM_at_const), literal(s));
   }
 
+  static void
+  generate_lvar(Scope *scope, Node *n)
+  {
+    if (Node_atomType(n) == ATOM_lvar) {
+      LvarScopeReg lvar = Scope_lvar_findRegnum(scope, Node_literalName(n->cons.cdr));
+      if (lvar.reg_num == 0) {
+        Scope_newLvar(scope, Node_literalName(n->cons.cdr), scope->sp);
+        Scope_push(scope);
+      }
+    }
+  }
+
   static Node*
   new_asgn(ParserState *p, Node *lhs, Node *rhs)
   {
+    generate_lvar(p->scope, lhs);
     return list3(atom(ATOM_assign), lhs, rhs);
   }
 
   static Node*
   new_op_asgn(ParserState *p, Node *lhs, const char *op, Node *rhs)
   {
+    generate_lvar(p->scope, lhs);
     return list4(atom(ATOM_op_assign), lhs, list2(atom(ATOM_at_op), literal(op)), rhs);
   }
 
@@ -307,6 +321,19 @@
   {
     //Node *n = new_self(p);
     return list3(atom(ATOM_fcall), b, c);
+  }
+
+  static Node*
+  var_reference(ParserState *p, Node *lhs)
+  {
+    if (Node_atomType(lhs) == ATOM_lvar) {
+      LvarScopeReg lvar = Scope_lvar_findRegnum(p->scope, lhs->cons.cdr->cons.car->value.name);
+      if (lvar.reg_num == 0) {
+        return new_fcall(p, lhs, 0);
+      }
+    }
+    //Scope_newLvar(p->scope, lhs->cons.cdr->cons.car->value.name, p->scope->sp++);
+    return lhs;
   }
 
   /* (:block_arg . a) */
@@ -384,6 +411,7 @@
   static Node*
   new_arg(ParserState *p, const char* a)
   {
+    Scope_newLvar(p->scope, a, p->scope->sp++);
     return list2(atom(ATOM_arg), literal(a));
   }
 
@@ -758,11 +786,6 @@ cpath(A) ::= cname(B).  {
 
 var_lhs ::= variable.
 
-variable(A) ::= IDENTIFIER(B). { A = new_lvar(p, B); }
-variable(A) ::= IVAR(B).       { A = new_ivar(p, B); }
-variable(A) ::= GVAR(B).       { A = new_gvar(p, B); }
-variable(A) ::= CONSTANT(B).   { A = new_const(p, B); }
-
 primary     ::= literal.
 primary     ::= string.
 primary     ::= var_ref.
@@ -1006,12 +1029,6 @@ opt_sep ::= none.
 opt_sep ::= WORDS_SEP.
 opt_sep ::= opt_sep WORDS_SEP.
 
-var_ref ::= variable.
-var_ref(A) ::= KW_nil. { A = list1(atom(ATOM_kw_nil)); }
-var_ref(A) ::= KW_self. { A = new_self(p); }
-var_ref(A) ::= KW_true. { A = list1(atom(ATOM_kw_true)); }
-var_ref(A) ::= KW_false. { A = list1(atom(ATOM_kw_false)); }
-
 superclass(A) ::= . { A = 0; }
 superclass_head ::= LT. {
                   //p->state = EXPR_BEG;
@@ -1025,6 +1042,17 @@ numeric(A) ::= INTEGER(B). { A = new_lit(p, B, ATOM_at_int); }
 numeric(A) ::= FLOAT(B).   { A = new_lit(p, B, ATOM_at_float); }
 numeric(A) ::= UMINUS_NUM INTEGER(B). [LOWEST] { A = new_neglit(p, B, ATOM_at_int); }
 numeric(A) ::= UMINUS_NUM FLOAT(B). [LOWEST]   { A = new_neglit(p, B, ATOM_at_float); }
+
+variable(A) ::= IDENTIFIER(B). { A = new_lvar(p, B); }
+variable(A) ::= IVAR(B).       { A = new_ivar(p, B); }
+variable(A) ::= GVAR(B).       { A = new_gvar(p, B); }
+variable(A) ::= CONSTANT(B).   { A = new_const(p, B); }
+
+var_ref(A) ::= variable(B). { A = var_reference(p, B); }
+var_ref(A) ::= KW_nil. { A = list1(atom(ATOM_kw_nil)); }
+var_ref(A) ::= KW_self. { A = new_self(p); }
+var_ref(A) ::= KW_true. { A = list1(atom(ATOM_kw_true)); }
+var_ref(A) ::= KW_false. { A = list1(atom(ATOM_kw_false)); }
 
 symbol(A) ::= basic_symbol(B). { A = new_sym(p, B); }
 symbol(A) ::= SYMBEG STRING_BEG STRING(C). {

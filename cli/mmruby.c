@@ -5,11 +5,6 @@
 #include "../src/mrubyc/src/mrubyc.h"
 
 #include "../src/mmrbc.h"
-#include "../src/common.h"
-#include "../src/compiler.h"
-#include "../src/debug.h"
-#include "../src/scope.h"
-#include "../src/stream.h"
 
 #include "heap.h"
 

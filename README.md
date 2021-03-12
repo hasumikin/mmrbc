@@ -1,3 +1,5 @@
+[![C/C++ CI](https://github.com/hasumikin/mmruby/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasumikin/mmruby/actions/workflows/c-cpp.yml)
+
 ## mmruby
 
 mmruby is an alternative mruby implementation which is:

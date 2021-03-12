@@ -114,7 +114,8 @@ void gen_str(Scope *scope, Node *node)
 void gen_sym(Scope *scope, Node *node)
 {
   Scope_pushCode(OP_LOADSYM);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   int litIndex = Scope_newSym(scope, Node_literalName(node));
   Scope_pushCode(litIndex);
 }
@@ -299,27 +300,17 @@ void gen_var(Scope *scope, Node *node)
   switch(Node_atomType(node)) {
     case (ATOM_lvar):
       lvar = Scope_lvar_findRegnum(scope, Node_literalName(node->cons.cdr));
-      if (lvar.reg_num > 0) {
-        if (lvar.scope_num > 0) {
-          Scope_pushCode(OP_GETUPVAR);
-          Scope_pushCode(scope->sp);
-          Scope_push(scope);
-          Scope_pushCode(lvar.reg_num);
-          Scope_pushCode(lvar.scope_num - 1);
-        } else {
-          Scope_pushCode(OP_MOVE);
-          Scope_pushCode(scope->sp);
-          Scope_push(scope);
-          Scope_pushCode(lvar.reg_num);
-        }
+      if (lvar.scope_num > 0) {
+        Scope_pushCode(OP_GETUPVAR);
+        Scope_pushCode(scope->sp);
+        Scope_push(scope);
+        Scope_pushCode(lvar.reg_num);
+        Scope_pushCode(lvar.scope_num - 1);
       } else {
-        /* fcall without arg */
-        gen_self(scope);
-        Scope_pushCode(OP_SEND);
-        Scope_pushCode(scope->sp - 1);
-        int symIndex = Scope_newSym(scope, Node_literalName(node->cons.cdr));
-        Scope_pushCode(symIndex);
-        Scope_pushCode(0);
+        Scope_pushCode(OP_MOVE);
+        Scope_pushCode(scope->sp);
+        Scope_push(scope);
+        Scope_pushCode(lvar.reg_num);
       }
       break;
     case (ATOM_at_ivar):
@@ -356,12 +347,7 @@ void gen_assign(Scope *scope, Node *node)
     case (ATOM_lvar):
       lvar = Scope_lvar_findRegnum(scope, Node_literalName(node->cons.car->cons.cdr));
       if (lvar.scope_num == 0) {
-        if (lvar.reg_num > 0) {
-          num = lvar.reg_num;
-        } else {
-          num = Scope_newLvar(scope, Node_literalName(node->cons.car->cons.cdr), scope->sp);
-        }
-        Scope_push(scope);
+        num = lvar.reg_num;
         codegen(scope, node->cons.cdr);
         Scope_pushCode(OP_MOVE);
         Scope_pushCode(num);
@@ -429,14 +415,19 @@ void gen_op_assign(Scope *scope, Node *node)
   LvarScopeReg lvar = {0, 0};
   char *method_name = NULL;
   const char *call_name;
+  { /* setup call_name here to avoid warning */
+    if (Node_atomType(node->cons.car) == ATOM_call)
+      call_name = Node_literalName(node->cons.car->cons.cdr->cons.cdr->cons.car->cons.cdr);
+    else
+      call_name = NULL;
+  }
+  bool is_call_name_at_ary = false;
   method_name = (char *)Node_literalName(node->cons.cdr->cons.car->cons.cdr);
   bool isANDOPorOROP = false; /* &&= or ||= */
   if (method_name[1] == '|' || method_name[1] == '&') {
     isANDOPorOROP = true;
   }
   JmpLabel *jmpLabel = NULL;
-  Node *recv = NULL;
-  int symIndex;
   switch(Node_atomType(node->cons.car)) {
     case (ATOM_lvar):
       lvar = Scope_lvar_findRegnum(scope, Node_literalName(node->cons.car->cons.cdr));
@@ -447,11 +438,7 @@ void gen_op_assign(Scope *scope, Node *node)
         Scope_pushCode(lvar.reg_num);
         Scope_pushCode(lvar.scope_num - 1);
       } else {
-        if (lvar.reg_num == 0) {
-          num = Scope_newLvar(scope, Node_literalName(node->cons.car->cons.cdr), scope->sp);
-        } else {
-          num = lvar.reg_num;
-        }
+        num = lvar.reg_num;
         Scope_pushCode(OP_MOVE);
         Scope_pushCode(scope->sp);
         Scope_push(scope);
@@ -481,9 +468,29 @@ void gen_op_assign(Scope *scope, Node *node)
       break;
     case (ATOM_call):
       Scope_push(scope);
-      call_name = Node_literalName(node->cons.car->cons.cdr->cons.cdr->cons.car->cons.cdr);
-      recv = node->cons.car->cons.cdr->cons.car;
-      codegen(scope, node->cons.car);
+      if (!strcmp(call_name, "[]")) is_call_name_at_ary = true;
+      codegen(scope, node->cons.car->cons.cdr->cons.car);
+      node->cons.car->cons.cdr->cons.car = NULL;
+      if (is_call_name_at_ary) {
+        codegen(scope, node->cons.car->cons.cdr);
+        Scope_pushCode(OP_MOVE);
+        Scope_pushCode(scope->sp);
+        Scope_pushCode(scope->sp - 2);
+        Scope_push(scope);
+        Scope_pushCode(OP_MOVE);
+        Scope_pushCode(scope->sp);
+        Scope_pushCode(scope->sp - 2);
+        Scope_pushCode(OP_SEND);
+        Scope_pushCode(scope->sp - 1);
+        Scope_pushCode(Scope_newSym(scope, "[]"));
+        Scope_pushCode(1);
+      } else {
+        Scope_pushCode(OP_MOVE);
+        Scope_pushCode(scope->sp);
+        Scope_pushCode(scope->sp - 1);
+        Scope_push(scope);
+        codegen(scope, node->cons.car);
+      }
       break;
     default:
       FATALP("error");
@@ -541,8 +548,7 @@ void gen_op_assign(Scope *scope, Node *node)
         Scope_pop(scope);
         Scope_pushCode(scope->sp);
         method_name[strlen(method_name) - 1] = '\0';
-        symIndex = Scope_newSym(scope, (const char *)method_name);
-        Scope_pushCode(symIndex);
+        Scope_pushCode(Scope_newSym(scope, (const char *)method_name));
         Scope_pushCode(1);
       }
       break;
@@ -570,32 +576,23 @@ void gen_op_assign(Scope *scope, Node *node)
       Scope_pushCode(OP_SETCONST);
       break;
     case (ATOM_call):
-      /*+
-       * TODO FIXME
-       * `obj[]+=` probably works
-       * `obj.attr+=` doesn't work yet
-       */
       /* right hand of assignment (mass-assign dosen't work) */
       Scope_pushCode(OP_MOVE);
-      Scope_push(scope);
-      Scope_push(scope);
+      if (is_call_name_at_ary) {
+        Scope_pushCode(scope->sp - 3);
+      } else {
+        Scope_pushCode(scope->sp - 2);
+      }
       Scope_pushCode(scope->sp);
-      Scope_pop(scope);
-      Scope_pop(scope);
-      Scope_pushCode(scope->sp);
-      /* load recv of assignment */
-      codegen(scope, recv);
-      /* `n` of `recv[n]+=` */
-      gen_values(scope, node->cons.car->cons.cdr->cons.cdr);
+      if (!is_call_name_at_ary) gen_values(scope, node->cons.car->cons.cdr->cons.cdr);
       /* exec assignment .[]= or .attr= */
       Scope_pushCode(OP_SEND);
       Scope_pop(scope);
-      Scope_pop(scope);
+      if (is_call_name_at_ary) Scope_pop(scope);
       Scope_pushCode(scope->sp);
-      symIndex = Scope_assignSymIndex(scope, call_name);
-      Scope_pushCode(symIndex);
+      Scope_pushCode(Scope_assignSymIndex(scope, call_name));
       /* count of args */
-      if (!strcmp(call_name, "[]")) {
+      if (is_call_name_at_ary) {
         Scope_pushCode(2); /* .[]= */
       } else {
         Scope_pushCode(1); /* .attr= */
@@ -605,7 +602,12 @@ void gen_op_assign(Scope *scope, Node *node)
       FATALP("error");
   }
   switch(Node_atomType(node->cons.car)) {
-    case (ATOM_lvar): if (lvar.scope_num > 0) break;
+    case (ATOM_lvar):
+      if (lvar.scope_num > 0) break;
+      Scope_pushCode(num);
+      Scope_pushCode(scope->sp);
+      Scope_push(scope);
+      break;
     case (ATOM_at_ivar):
     case (ATOM_at_gvar):
     case (ATOM_at_const):
@@ -745,7 +747,8 @@ void gen_case(Scope *scope, Node *node)
     } else {
       /* no else clause */
       Scope_pushCode(OP_LOADNIL);
-      Scope_pushCode(scope->sp++);
+      Scope_pushCode(scope->sp);
+      Scope_push(scope);
       break;
     }
   }
@@ -770,7 +773,8 @@ void gen_if(Scope *scope, Node *node)
   if (Node_atomType(node->cons.cdr->cons.cdr->cons.car) == ATOM_NONE) {
     /* right before KW_end */
     Scope_pushCode(OP_LOADNIL);
-    Scope_pushCode(scope->sp++);
+    Scope_pushCode(scope->sp);
+    Scope_push(scope);
   } else {
     /* if_tail */
     codegen(scope, node->cons.cdr->cons.cdr->cons.car);
@@ -799,7 +803,8 @@ void gen_while(Scope *scope, Node *node, int op_jmp)
   Scope_backpatchJmpLabel(label_top, top);
   /* after while block */
   Scope_pushCode(OP_LOADNIL);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   Scope_popBreakStack(scope);
   pop_nest_stack(scope);
 }
@@ -876,16 +881,17 @@ void gen_irep(Scope *scope, Node *node)
 void gen_block(Scope *scope, Node *node)
 {
   Scope_pushCode(OP_BLOCK);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   Scope_pushCode(scope->next_lower_number);
-
   gen_irep(scope, node->cons.cdr);
 }
 
 void gen_def(Scope *scope, Node *node)
 {
   Scope_pushCode(OP_TCLASS);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   Scope_pushCode(OP_METHOD);
   Scope_pushCode(scope->sp);
   Scope_pushCode(scope->next_lower_number);
@@ -894,7 +900,8 @@ void gen_def(Scope *scope, Node *node)
   int litIndex = Scope_newSym(scope, Node_literalName(node));
   Scope_pushCode(litIndex);
   Scope_pushCode(OP_LOADSYM);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   Scope_pushCode(litIndex);
 
   gen_irep(scope, node->cons.cdr->cons.cdr);
@@ -904,7 +911,8 @@ void gen_class(Scope *scope, Node *node)
 {
   int litIndex;
   Scope_pushCode(OP_LOADNIL);
-  Scope_pushCode(scope->sp++);
+  Scope_pushCode(scope->sp);
+  Scope_push(scope);
   /*
    * TODO: `::Klass` `Klass::Glass`
    */
@@ -924,12 +932,14 @@ void gen_class(Scope *scope, Node *node)
 
   if (node->cons.cdr->cons.cdr->cons.car->cons.cdr == NULL) {
     Scope_pushCode(OP_LOADNIL);
-    Scope_pushCode(scope->sp++);
+    Scope_pushCode(scope->sp);
+    Scope_push(scope);
     scope->nlowers--;
   } else {
     node->cons.cdr->cons.car = NULL; /* Stop generating super class CONST */
     Scope_pushCode(OP_EXEC);
-    Scope_pushCode(scope->sp++);
+    Scope_pushCode(scope->sp);
+    Scope_push(scope);
     Scope_pushCode(scope->next_lower_number);
 
     scope = scope_nest(scope);
@@ -981,12 +991,15 @@ void codegen(Scope *scope, Node *tree)
       scope->nest_stack = 1; /* 00000000 00000000 00000000 00000001 */
       codegen(scope, tree->cons.cdr->cons.car);
       Scope_pop(scope);
+      /* Prevent double return */
       CodePool *pool = scope->current_code_pool;
-      /* Prevent double return (I'm not 100% sure if it's OK) */
-      if (pool->data[pool->index - 2] != OP_RETURN && pool->data[pool->index - 1] != scope->sp) {
-        Scope_pushCode(OP_RETURN);
-        Scope_pushCode(scope->sp);
-      }
+      /* Prevention only works if `OP_RETURN Rn` aren't separated */
+      if (pool->index > 1)
+        if (pool->data[pool->index - 1] != scope->sp)
+          if (pool->data[pool->index - 2] != OP_RETURN) {
+            Scope_pushCode(OP_RETURN);
+            Scope_pushCode(scope->sp);
+          }
       Scope_pushCode(OP_STOP);
       Scope_finish(scope);
       break;
@@ -1114,8 +1127,6 @@ void codegen(Scope *scope, Node *tree)
       gen_block(scope, tree);
       break;
     case ATOM_arg:
-      Scope_newLvar(scope, Node_literalName(tree->cons.cdr), scope->sp);
-      scope->sp++;
       break;
     case ATOM_def:
       gen_def(scope, tree->cons.cdr);
