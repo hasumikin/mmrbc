@@ -13,27 +13,8 @@ class Client
     sleep 1
   end
 
-  def start
-    puts 'mmirb client started.'
-    begin
-      while line = Reline.readline("mmirb> ", true)
-        case line.chomp
-        when 'exit', 'quit'
-          @serialport.write "exit"
-          break
-        when /\A\s*\z/
-          # next
-        else
-          @serialport.write line
-          sleep 0.1
-          puts_result
-        end
-      end
-    rescue Interrupt
-      puts '^C'
-      `stty #{stty_save}` if stty_save
-      exit 0
-    end
+  def close
+    @serialport.close
   end
 
   def get_shell_pid
@@ -49,22 +30,10 @@ class Client
       end
     end
   end
-
-  def puts_result
-    while true
-      result = @serialport.read(1024)
-      if result == ""
-        break
-      else
-        puts result
-        sleep 0.1
-      end
-    end
-  end
 end
 
 TMPDIR = Dir.tmpdir
-PID_SOCAT = TMPDIR + "/mmirb_socat.pid"
+PID_SOCAT = TMPDIR + "/picoshell_socat.pid"
 SOCAT_OUTPUT = TMPDIR + "/socat_output"
 
 begin
@@ -75,14 +44,25 @@ begin
   File.open(SOCAT_OUTPUT, "r") do |f|
     fd_server = f.gets.split(" ").last
     fd_client = f.gets.split(" ").last
-    systemu("../build/host-debug/bin/mmirb #{fd_server}") do |server_pid|
+    puts "fd_server: #{fd_server}"
+    puts "fd_client: #{fd_client}"
+    systemu("../build/host-debug/bin/picoshell #{fd_server}") do |server_pid|
       puts "client pid: #{Process.pid}"
       puts "socat  pid: #{socat_pid}"
       puts "server pid: #{server_pid}"
       client = Client.new(fd_client)
       shell_pid = client.get_shell_pid
+      client.close
       puts "shell  pid: #{shell_pid}"
-      client.start
+      puts
+      puts "exec command below on another terminal:"
+      puts "% cu -s 115200 -l #{fd_client}"
+      puts "(type ~. to exit client)"
+      while true
+        print "type any line to exit server > "
+        gets
+        break;
+      end
       Process.kill 9, server_pid
     end
   end
@@ -90,3 +70,4 @@ ensure
   Process.kill 9, socat_pid
   Process.kill 9, shell_pid if shell_pid
 end
+

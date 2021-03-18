@@ -58,7 +58,7 @@ const char *Node_literalName(Node *self)
 NodeBox *Node_newBox(ParserState *p)
 {
   int size = sizeof(NodeBox) + sizeof(Node) * p->node_box_size;
-  NodeBox *node_box = (NodeBox *)mmrbc_alloc(size);
+  NodeBox *node_box = (NodeBox *)picorbc_alloc(size);
   memset(node_box, 0, size);
   if (p->current_node_box) p->current_node_box->next = node_box;
   p->current_node_box = node_box;
@@ -88,7 +88,7 @@ void Node_freeAllNode(NodeBox *box)
       node = (Node *)((Node *)(&box->nodes) + i);
       if (node == NULL) break;
     }
-    mmrbc_free(box);
+    picorbc_free(box);
     box = next;
   }
 }

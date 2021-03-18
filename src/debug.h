@@ -1,5 +1,5 @@
-#ifndef MMRBC_DEBUG_H_
-#define MMRBC_DEBUG_H_
+#ifndef PICORBC_DEBUG_H_
+#define PICORBC_DEBUG_H_
 
 #include <stdio.h>
 #include <stdint.h>
@@ -15,7 +15,7 @@ extern int loglevel;
 
 #if !defined(NDEBUG)
 
-  #define MMRBC_DEBUG
+  #define PICORBC_DEBUG
 
   #define DEBUGP(fmt, ...)                 \
     do {                                  \
@@ -77,4 +77,4 @@ extern int loglevel;
                            fprintf(stderr, "\n"))
 #endif /* !NDEBUG */
 
-#endif /* MMRBC_DEBUG_H_ */
+#endif /* PICORBC_DEBUG_H_ */

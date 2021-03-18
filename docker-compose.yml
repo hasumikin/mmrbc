@@ -5,8 +5,8 @@ services:
   arm-none-eabi-tools:
     image: hasumikin/arm-none-eabi-tools
     volumes:
-      - .:/mmruby:cached
-    working_dir: /mmruby
+      - .:/picoruby:cached
+    working_dir: /picoruby
     tty: true
     stdin_open: true
     command: make docker_psoc5lp_lib

@@ -1,4 +1,4 @@
-class FunctionTest < MmrubyTest
+class FunctionTest < PicoRubyTest
   desc "One arg without paren"
   assert_equal(<<~RUBY, "Hello")
     puts 'Hello'

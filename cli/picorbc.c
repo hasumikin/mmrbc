@@ -7,7 +7,7 @@
 
 #include "../src/mrubyc/src/alloc.h"
 
-#include "../src/mmrbc.h"
+#include "../src/picorbc.h"
 
 #include "../src/ruby-lemon-parse/parse_header.h"
 
@@ -30,20 +30,20 @@ int handle_opt(int argc, char * const *argv)
   while ((opt = getopt_long(argc, argv, "vdbl:", longopts, &longindex)) != -1) {
     switch (opt) {
       case 'v':
-        fprintf(stdout, "mini mruby compiler %s\n", MMRBC_VERSION);
+        fprintf(stdout, "pico ruby compiler %s\n", PICORBC_VERSION);
         return -1;
       case 'b': /* verbose */
         /* TODO */
         break;
       case 'd': /* debug */
-        #ifndef MMRBC_DEBUG
+        #ifndef PICORBC_DEBUG
           fprintf(stderr, "[ERROR] `--debug` option is only valid if you did `make` without CFLAGS=-DNDEBUG\n");
           return 1;
         #endif
         loglevel = LOGLEVEL_DEBUG;
         break;
       case 'l':
-        #ifndef MMRBC_DEBUG
+        #ifndef PICORBC_DEBUG
           fprintf(stderr, "[ERROR] `--loglevel=[level]` option is only valid if you made executable without -DNDEBUG\n");
           return 1;
         #endif
@@ -77,7 +77,7 @@ int output(Scope *scope, char *in)
     memcpy(&out[strlen(in)], ".mrb\0", 5);
   }
   if( (fp = fopen( out, "wb" ) ) == NULL ) {
-    FATALP("mmrbc: cannot write a file. (%s)", out);
+    FATALP("picorbc: cannot write a file. (%s)", out);
     return 1;
   } else {
     fwrite(scope->vm_code, scope->vm_code_size, 1, fp);
@@ -94,7 +94,7 @@ int main(int argc, char * const *argv)
   if (ret != 0) return ret;
 
   if ( !argv[optind] ) {
-    ERRORP("mmrbc: no program file given");
+    ERRORP("picorbc: no program file given");
     return 1;
   }
 
@@ -113,7 +113,7 @@ int main(int argc, char * const *argv)
   StreamInterface_free(si);
   Compiler_parserStateFree(p);
   if (ret != 0) return ret;
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
   memcheck();
 #endif
   return ret;

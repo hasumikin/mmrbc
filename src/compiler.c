@@ -13,7 +13,7 @@
 #include "tokenizer_helper.h"
 #include "my_regex.h"
 
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
 #define ZERO     "\e[30;1m"
 #define CTRL     "\e[35;1m"
 #define LETTER   "\e[36m"
@@ -76,7 +76,7 @@ printToken(Tokenizer *tokenizer, Token *token) {
      token->value,
      tokenizer_state_name(token->state));
 }
-#endif /* MMRBC_DEBUG */
+#endif /* PICORBC_DEBUG */
 
 bool Compiler_compile(ParserState *p, StreamInterface *si)
 {
@@ -86,7 +86,7 @@ bool Compiler_compile(ParserState *p, StreamInterface *si)
   // MyRegex_setup(true);
   Tokenizer *tokenizer = Tokenizer_new(p, si);
   Token *topToken = tokenizer->currentToken;
-  yyParser *parser = ParseAlloc(mmrbc_alloc, p);
+  yyParser *parser = ParseAlloc(picorbc_alloc, p);
   Type prevType = 0;
   while( Tokenizer_hasMoreTokens(tokenizer) ) {
     if (Tokenizer_advance(tokenizer, false) != 0) break;
@@ -95,7 +95,7 @@ bool Compiler_compile(ParserState *p, StreamInterface *si)
         DEBUGP("(main)%p null", topToken);
       } else {
         if (topToken->type != ON_SP) {
-          #ifdef MMRBC_DEBUG
+          #ifdef PICORBC_DEBUG
           printToken(tokenizer, topToken);
           #endif
           const char *string;
@@ -149,7 +149,7 @@ FAIL:
   bool success;
   if (p->error_count == 0) {
     success = true;
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
     ParseShowAllNode(parser, 1);
 #endif
     Generator_generate(p->scope, p->root_node_box->nodes);
@@ -157,11 +157,11 @@ FAIL:
     ERRORP("Syntax error at line:%d\n%s", tokenizer->line_num, tokenizer->line);
     success = false;
   }
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
   if (success) dumpCode(p->scope);
 #endif
   ParseFreeAllNode(parser);
-  mmrbc_free(parser);
+  picorbc_free(parser);
   Tokenizer_free(tokenizer);
   return success;
 }

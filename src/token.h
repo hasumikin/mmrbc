@@ -1,5 +1,5 @@
-#ifndef MMRBC_TOKEN_H_
-#define MMRBC_TOKEN_H_
+#ifndef PICORBC_TOKEN_H_
+#define PICORBC_TOKEN_H_
 
 #include <stdint.h>
 #include <stdbool.h>

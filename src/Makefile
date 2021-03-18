@@ -1,7 +1,7 @@
 CFLAGS += -Wall -Wpointer-arith -std=gnu99
 AR := ar
 CC := gcc
-TARGET := libmmrbc.a
+TARGET := libpicorbc.a
 SRCS := compiler.c common.c token.c tokenizer.c generator.c my_regex.c scope.c node.c stream.c
 OBJS := $(SRCS:%.c=%.o)
 DEPS := $(SRCS:%.c=%.d)
@@ -22,10 +22,10 @@ tokenizer_helper.h: token.h tokenizer.h
 
 ruby-lemon-parse/parse.c:
 	cd ruby-lemon-parse ; \
-	  LEMON_MACRO=-DLEMON_MMRBC $(MAKE) parse.c atom_helper.h token_helper.h keyword_helper.h
+	  LEMON_MACRO=-DLEMON_PICORBC $(MAKE) parse.c atom_helper.h token_helper.h keyword_helper.h
 
 $(TARGET): $(OBJS) regex_light/src/regex.o
-ifeq ($(findstring MMRUBY_REGEX_LIBC, $(CFLAGS)), MMRUBY_REGEX_LIBC)
+ifeq ($(findstring PICORUBY_REGEX_LIBC, $(CFLAGS)), PICORUBY_REGEX_LIBC)
 	$(AR) $(ARFLAGS) $@ $(filter-out regex_light/src/regex.o, $^)
 else
 	$(AR) $(ARFLAGS) $@ $^

@@ -1,4 +1,4 @@
-class OpAssignTest < MmrubyTest
+class OpAssignTest < PicoRubyTest
   desc "OP_ASSIGN with both []= and attr="
   assert_equal(<<~RUBY, "[4, 6]")
     class Array

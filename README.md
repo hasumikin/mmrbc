@@ -1,8 +1,8 @@
-[![C/C++ CI](https://github.com/hasumikin/mmruby/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasumikin/mmruby/actions/workflows/c-cpp.yml)
+[![C/C++ CI](https://github.com/hasumikin/picoruby/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasumikin/picoruby/actions/workflows/c-cpp.yml)
 
-## mmruby
+## PicoRuby ~~mmruby~~ (renamed on March 15th, 2021)
 
-mmruby is an alternative mruby implementation which is:
+PicoRuby is an alternative mruby implementation which is:
 
 - Small foot print
   - ROM: 256KB or less
@@ -13,8 +13,8 @@ mmruby is an alternative mruby implementation which is:
 
 ### Set-up
 
-- mmrbc
-  - mini mruby compiler. The main part of this repository
+- picorbc
+  - pico mruby compiler. The main part of this repository
 - [mruby/c (mrubyc/mrubyc)](https://github.com/mrubyc/mrubyc)
   - Another implementation of mruby virtual machine
 
@@ -30,32 +30,34 @@ mmruby is an alternative mruby implementation which is:
 
 `make` command will make three executable binaries
 
-- mmrbc
-  - `build/host-debug/bin/mmrbc source.rb` makes `source.mrb` which is VM code runs on mruby VM
-- mmruby
-  - `build/host-debug/bin/mmruby source.rb` executes Ruby just like normal `ruby` command
-  - You can also do like `build/host-debug/bin/mmruby -e 'puts "Hello World!"'`
-- mmirb
-  - It is an experimental REPL implementation. See [mmirb section](#mmirb)
+- picorbc
+  - `build/host-debug/bin/picorbc source.rb` makes `source.mrb` which is VM code runs on mruby VM
+- picoruby
+  - `build/host-debug/bin/picoruby source.rb` executes Ruby just like normal `ruby` command
+  - You can also do it like `build/host-debug/bin/picoruby -e 'puts "Hello World!"'`
+- picoshell
+  - It is an experimental REPL implementation. See [picoshell section](#picoshell)
 
 ### Debug build and production build
 
 `make` command makes "debug build" which shows debug-print like this:
 
-![](https://raw.githubusercontent.com/hasumikin/mmruby/master/docs/images/debug-print.png)
+![](https://raw.githubusercontent.com/hasumikin/picoruby/master/docs/images/debug-print.png)
 
-You can get "production build" like `build/host-production/bin/mmruby` which omits debug-print by `make host_production`
+(Please replace `mmruby` with `picoruby`)
 
-### mmirb<a name="mmirb"></a>
+You can get "production build" like `build/host-production/bin/picoruby` which omits debug-print by `make host_production`
 
-Because mmruby is dedicated for onechip-microcontroller which doesn't have STDIN/STDOUT like *normal computers*, REPL (or you can also say SHELL) should work over serial communication like UART.
+### picoshell<a name="picoshell"></a>
 
-You can start up mmirb on your host machine with `make mmirb` though, it may look weird since it is implemented as a ported version from microcontroller version.
+Because PicoRuby is dedicated for onechip-microcontroller which doesn't have STDIN/STDOUT like *normal computers*, REPL (or you can also say SHELL) should work over serial communication like UART.
+
+You can start up picoshell on your host machine with `make picoshell` though, it may look weird since it is implemented as a ported version from microcontroller version.
 Please try to use it according as the message on the screen if you are intersted in.
 
 You will find more information at [hasumikin/mruby_machine_PSoC5LP](https://github.com/hasumikin/mruby_machine_PSoC5LP)
 
-### Presentation about mmruby
+### Presentation about ~~mmruby~~ PicoRuby
 
 I gave a talk about this project on [RubyKaigi Takeout 2020](https://rubykaigi.org/2020-takeout).
 
@@ -64,11 +66,11 @@ I gave a talk about this project on [RubyKaigi Takeout 2020](https://rubykaigi.o
 
 ### Roadmap
 
-mmruby is still developing halfway towards finishing as of 2020.
+PicoRuby is still developing halfway towards finishing as of 2020.
 
-See implementation roadmap on [issue/6](https://github.com/hasumikin/mmruby/issues/6)
+See implementation roadmap on [issue/6](https://github.com/hasumikin/picoruby/issues/6)
 
-### Contributing to mmruby
+### Contributing to PicoRuby
 
 Fork, fix, then send a pull request.
 

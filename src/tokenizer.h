@@ -1,5 +1,5 @@
-#ifndef MMRBC_TOKENIZER_H_
-#define MMRBC_TOKENIZER_H_
+#ifndef PICORBC_TOKENIZER_H_
+#define PICORBC_TOKENIZER_H_
 
 #include <stdbool.h>
 

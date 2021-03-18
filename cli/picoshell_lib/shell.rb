@@ -68,9 +68,20 @@ while true
         line = line[0, line.size - 1] # line.chop!
         print "\b \b"
       end
+    when 27 # escape sequence?
+      case getc
+      when '['
+        case gets
+        when 'D'
+          print "\033[D"
+        end
+      end
+
     else
-      print c
-      line << c
+      if 31 < c.ord && c.ord < 127
+        print c
+        line << c
+      end
     end
   end
 end

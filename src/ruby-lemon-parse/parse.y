@@ -59,21 +59,21 @@
   #include "../token.h"
 }
 
-%ifdef LEMON_MMRBC
+%ifdef LEMON_PICORBC
   %include {
     #ifdef MRBC_ALLOC_LIBC
       #define LEMON_ALLOC(size) malloc(size)
       #define LEMON_FREE(ptr)   free(ptr)
     #else
-      void *mmrbc_alloc(size_t size);
-      void mmrbc_free(void *ptr);
-      #define LEMON_ALLOC(size) mmrbc_alloc(size)
-      #define LEMON_FREE(ptr)   mmrbc_free(ptr)
+      void *picorbc_alloc(size_t size);
+      void picorbc_free(void *ptr);
+      #define LEMON_ALLOC(size) picorbc_alloc(size)
+      #define LEMON_FREE(ptr)   picorbc_free(ptr)
     #endif /* MRBC_ALLOC_LIBC */
   }
 %endif
 
-%ifndef LEMON_MMRBC
+%ifndef LEMON_PICORBC
   %include {
     #define LEMON_ALLOC(size) malloc(size)
     #define LEMON_FREE(ptr)   free(ptr)

@@ -1,24 +1,27 @@
 CFLAGS += -Wall -Wpointer-arith -std=gnu99
 CC := gcc
 LDFLAGS +=
-TARGETS = mmrbc mmruby mmirb_lib/shell.c mmirb
+TARGETS = picorbc picoruby picoshell_lib/shell.c picoshell
 MRUBYCDIR = ../src/mrubyc/src
-MMRBCDIR = ../src
+PICORBCDIR = ../src
 
-all: mmrbc mmruby mmirb
+all: picorbc picoruby picoshell picoirb
 
-mmrbc: mmrbc.c heap.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lmmrbc
+picorbc: picorbc.c heap.h
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lpicorbc
 
-mmruby: mmruby.c heap.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lmmrbc
+picoruby: picoruby.c heap.h
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lpicorbc
 
-mmirb: mmirb.c heap.h mmirb_lib/shell.c mmirb_lib/shell.rb
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out mmirb_lib/shell.c mmirb_lib/shell.rb, $^) -L../$(LIB_DIR) -lmrubyc -lmmrbc
+picoirb: picoirb.c heap.h
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lpicorbc
 
-mmirb_lib/shell.c: mmirb_lib/shell.rb
-	cd mmirb_lib ; make all
+picoshell: picoshell.c heap.h picoshell_lib/shell.c picoshell_lib/shell.rb
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out picoshell_lib/shell.c picoshell_lib/shell.rb, $^) -L../$(LIB_DIR) -lmrubyc -lpicorbc
+
+picoshell_lib/shell.c: picoshell_lib/shell.rb
+	cd picoshell_lib ; make all
 
 clean:
-	cd mmirb_lib ; make clean
+	cd picoshell_lib ; make clean
 	rm -f $(TARGETS)

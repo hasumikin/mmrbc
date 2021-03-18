@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-class MmrubyTest
+class PicoRubyTest
   def initialize
     @@pending = false
     @@exit_code = 0
@@ -13,7 +13,7 @@ class MmrubyTest
     @@failure_struct = Struct.new(:filename, :description, :script, :expected, :actual)
     @@failures = []
     @@description = ""
-    @@mmruby_path = File.expand_path('../../../build/host-production/bin/mmruby', __FILE__)
+    @@picoruby_path = File.expand_path('../../../build/host-production/bin/picoruby', __FILE__)
   end
 
   def exit_code
@@ -62,7 +62,7 @@ class MmrubyTest
       @@pending_count += 1
       return
     end
-    actual = `#{@@mmruby_path} -e "#{script}"`.chomp.gsub(/\r/, "")
+    actual = `#{@@picoruby_path} -e "#{script}"`.chomp.gsub(/\r/, "")
     if actual == expected
       print "#{@@green}."
       @@success_count += 1
@@ -79,7 +79,7 @@ class MmrubyTest
   end
 end
 
-mmruby_test = MmrubyTest.new
-mmruby_test.test
+picoruby_test = PicoRubyTest.new
+picoruby_test.test
 
-exit mmruby_test.exit_code
+exit picoruby_test.exit_code

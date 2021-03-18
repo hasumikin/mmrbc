@@ -8,7 +8,7 @@
 
 fmemstream *fmemstreamopen(char *mem)
 {
-  fmemstream *stream = mmrbc_alloc(sizeof(fmemstream));
+  fmemstream *stream = picorbc_alloc(sizeof(fmemstream));
   stream->pos = 0;
   stream->mem = mem;
   stream->size = strlen(mem);
@@ -63,14 +63,14 @@ char *fmemgets(char *s, int max, FILE *file)
 
 StreamInterface *StreamInterface_new(char *c, StreamType type)
 {
-  StreamInterface *si = mmrbc_alloc(sizeof(StreamInterface));
+  StreamInterface *si = picorbc_alloc(sizeof(StreamInterface));
   si->type = type;
   uint16_t length;
   switch (si->type) {
     case STREAM_TYPE_FILE:
       if( (si->stream = (void *)fopen(c, "r" ) ) == NULL ) {
-        FATALP("mmrbc: cannot open program file. (%s)", c);
-        mmrbc_free(si);
+        FATALP("picorbc: cannot open program file. (%s)", c);
+        picorbc_free(si);
         return NULL;
       } else {
         si->fgetsProc = fgets;
@@ -104,11 +104,11 @@ void StreamInterface_free(StreamInterface *si)
   switch (si->type) {
     case STREAM_TYPE_FILE:
       fclose(si->stream);
-      mmrbc_free(si);
+      picorbc_free(si);
       break;
     case STREAM_TYPE_MEMORY:
-      mmrbc_free(si->stream);
-      mmrbc_free(si);
+      picorbc_free(si->stream);
+      picorbc_free(si);
       break;
     default:
       FATALP("error at Stream_free()");

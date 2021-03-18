@@ -1,5 +1,5 @@
-#ifndef MMRBC_FMEMSTREAM_H_
-#define MMRBC_FMEMSTREAM_H_
+#ifndef PICORBC_FMEMSTREAM_H_
+#define PICORBC_FMEMSTREAM_H_
 
 typedef enum stream_type
 {
@@ -27,4 +27,4 @@ StreamInterface *StreamInterface_new(char *c, StreamType st);
 
 void StreamInterface_free(StreamInterface *si);
 
-#endif /* MMRBC_FMEMSTREAM_H_ */
+#endif /* PICORBC_FMEMSTREAM_H_ */

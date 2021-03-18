@@ -1,5 +1,5 @@
-#ifndef MMRBC_COMPILE_H_
-#define MMRBC_COMPILE_H_
+#ifndef PICORBC_COMPILE_H_
+#define PICORBC_COMPILE_H_
 
 #include <stdbool.h>
 

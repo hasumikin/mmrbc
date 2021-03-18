@@ -9,7 +9,7 @@
 
 Token *Token_new(void)
 {
-  Token *self = (Token *)mmrbc_alloc(sizeof(Token));
+  Token *self = (Token *)picorbc_alloc(sizeof(Token));
   self->value = NULL;
   self->type = ON_NONE;
   self->prev = NULL;
@@ -21,11 +21,11 @@ Token *Token_new(void)
 void Token_free(Token* self)
 {
   if (self->value != NULL) {
-    mmrbc_free(self->value);
+    picorbc_free(self->value);
     DEBUGP("free Token->value: `%s`", self->value);
   }
   DEBUGP("free Token: %p", self);
-  mmrbc_free(self);
+  picorbc_free(self);
 }
 
 bool Token_exists(Token* const self)

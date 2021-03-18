@@ -10,7 +10,7 @@
 
 void generateCodePool(Scope *self, uint16_t size)
 {
-  CodePool *pool = (CodePool *)mmrbc_alloc(sizeof(CodePool) - IREP_HEADER_SIZE + size);
+  CodePool *pool = (CodePool *)picorbc_alloc(sizeof(CodePool) - IREP_HEADER_SIZE + size);
   pool->size = size;
   pool->index = 0;
   pool->next = NULL;
@@ -21,7 +21,7 @@ void generateCodePool(Scope *self, uint16_t size)
 
 Scope *Scope_new(Scope *upper, bool lvar_top)
 {
-  Scope *self = mmrbc_alloc(sizeof(Scope));
+  Scope *self = picorbc_alloc(sizeof(Scope));
   self->next_lower_number = 0;
   self->upper = upper;
   self->first_lower = NULL;
@@ -59,21 +59,21 @@ void freeLiteralRcsv(Literal *literal)
 {
   if (literal == NULL) return;
   freeLiteralRcsv(literal->next);
-  mmrbc_free(literal);
+  picorbc_free(literal);
 }
 
 void freeSymbolRcsv(Symbol *symbol)
 {
   if (symbol == NULL) return;
   freeSymbolRcsv(symbol->next);
-  mmrbc_free(symbol);
+  picorbc_free(symbol);
 }
 
 void freeLvarRcsv(Lvar *lvar)
 {
   if (lvar == NULL) return;
   freeLvarRcsv(lvar->next);
-  mmrbc_free(lvar);
+  picorbc_free(lvar);
 }
 
 void freeAssignSymbol(AssignSymbol *assign_symbol)
@@ -81,8 +81,8 @@ void freeAssignSymbol(AssignSymbol *assign_symbol)
   AssignSymbol *prev;
   while (assign_symbol) {
     prev = assign_symbol->prev;
-    mmrbc_free((void *)assign_symbol->value);
-    mmrbc_free(assign_symbol);
+    picorbc_free((void *)assign_symbol->value);
+    picorbc_free(assign_symbol);
     assign_symbol = prev;
   }
 }
@@ -97,9 +97,9 @@ void Scope_free(Scope *self)
   freeLvarRcsv(self->lvar);
   freeAssignSymbol(self->last_assign_symbol);
   if (self->vm_code != NULL) {
-    mmrbc_free(self->vm_code);
+    picorbc_free(self->vm_code);
   }
-  mmrbc_free(self);
+  picorbc_free(self);
 }
 
 void Scope_pushNCode_self(Scope *self, uint8_t *str, int size)
@@ -125,7 +125,7 @@ void Scope_pushCode_self(Scope *self, int val)
 
 Literal *literal_new(const char *value, LiteralType type)
 {
-  Literal *literal = mmrbc_alloc(sizeof(Literal));
+  Literal *literal = picorbc_alloc(sizeof(Literal));
   literal->next = NULL;
   literal->type = type;
   literal->value = value;
@@ -167,7 +167,7 @@ int Scope_newLit(Scope *self, const char *value, LiteralType type){
 
 Symbol *symbol_new(const char *value)
 {
-  Symbol *symbol = mmrbc_alloc(sizeof(Symbol));
+  Symbol *symbol = picorbc_alloc(sizeof(Symbol));
   symbol->next = NULL;
   symbol->value = value;
   return symbol;
@@ -175,7 +175,7 @@ Symbol *symbol_new(const char *value)
 
 Lvar *lvar_new(const char *name, int regnum)
 {
-  Lvar *lvar = mmrbc_alloc(sizeof(Lvar));
+  Lvar *lvar = picorbc_alloc(sizeof(Lvar));
   lvar->regnum = regnum;
   lvar->next = NULL;
   lvar->name = name;
@@ -218,20 +218,20 @@ int Scope_newSym(Scope *self, const char *value){
 int Scope_assignSymIndex(Scope *self, const char *method_name)
 {
   size_t length = strlen(method_name);
-  char *assign_method_name = mmrbc_alloc(length + 2);
+  char *assign_method_name = picorbc_alloc(length + 2);
   memcpy(assign_method_name, method_name, length);
   assign_method_name[length] = '=';
   assign_method_name[length + 1] = '\0';
   int symIndex = symbol_findIndex(self->symbol, assign_method_name);
   if (symIndex < 0) {
     symIndex = Scope_newSym(self, (const char *)assign_method_name);
-    AssignSymbol *assign_symbol = mmrbc_alloc(sizeof(AssignSymbol));
+    AssignSymbol *assign_symbol = picorbc_alloc(sizeof(AssignSymbol));
     assign_symbol->prev = NULL;
     assign_symbol->value = assign_method_name;
     assign_symbol->prev = self->last_assign_symbol;
     self->last_assign_symbol = assign_symbol;
   } else {
-    mmrbc_free(assign_method_name);
+    picorbc_free(assign_method_name);
   }
   return symIndex;
 }
@@ -293,12 +293,12 @@ int scope_codeSize(CodePool *code_pool)
   return size;
 }
 
-#define MMRUBYNULL "MMRUBYNULL\xF5"
+#define PICORUBYNULL "PICORUBYNULL\xF5"
 /*
  * Replace back to null letter
- *  -> see REPLACE_NULL_MMRUBY, too
+ *  -> see REPLACE_NULL_PICORUBY, too
  */
-size_t replace_mmruby_null(char *value)
+size_t replace_picoruby_null(char *value)
 {
   int i = 0;
   int j = 0;
@@ -306,9 +306,9 @@ size_t replace_mmruby_null(char *value)
   while (value[i]) {
     if (value[i] != '\xF5') {
       j_value[j] = value[i];
-    } else if (strncmp(value+i+1, MMRUBYNULL, sizeof(MMRUBYNULL)-1) == 0) {
+    } else if (strncmp(value+i+1, PICORUBYNULL, sizeof(PICORUBYNULL)-1) == 0) {
       j_value[j] = '\0';
-      i += sizeof(MMRUBYNULL) - 1;
+      i += sizeof(PICORUBYNULL) - 1;
     }
     i++;
     j++;
@@ -339,7 +339,7 @@ void Scope_finish(Scope *scope)
   lit = scope->literal;
   while (lit != NULL) {
     Scope_pushCode(lit->type);
-    len = replace_mmruby_null((char *)lit->value);
+    len = replace_picoruby_null((char *)lit->value);
     Scope_pushCode((len >>8) & 0xff);
     Scope_pushCode(len & 0xff);
     Scope_pushNCode((uint8_t *)lit->value, len);
@@ -395,7 +395,7 @@ void freeCodePool(CodePool *pool)
   CodePool *next ;
   while (1) {
     next = pool->next;
-    mmrbc_free(pool);
+    picorbc_free(pool);
     if (next == NULL) break;
     pool = next;
   }
@@ -424,7 +424,7 @@ void Scope_backpatchJmpLabel(void *label, int32_t position)
 
 void Scope_pushBreakStack(Scope *self)
 {
-  BreakStack *break_stack = mmrbc_alloc(sizeof(BreakStack));
+  BreakStack *break_stack = picorbc_alloc(sizeof(BreakStack));
   break_stack->point = NULL;
   break_stack->next_pos = self->vm_code_size;
   if (self->break_stack) {
@@ -441,7 +441,7 @@ void Scope_popBreakStack(Scope *self)
   if (self->break_stack->point)
     Scope_backpatchJmpLabel(self->break_stack->point, self->vm_code_size);
   self->break_stack = self->break_stack->prev;
-  mmrbc_free(memo);
+  picorbc_free(memo);
 }
 
 int Scope_updateVmCodeSizeThenReturnTotalSize(Scope *self)

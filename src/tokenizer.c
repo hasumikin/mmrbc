@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "mmrbc.h"
+#include "picorbc.h"
 #include "ruby-lemon-parse/parse.h"
 #include "ruby-lemon-parse/keyword_helper.h"
 #include "ruby-lemon-parse/token_helper.h"
@@ -84,12 +84,12 @@ static void tokenizer_paren_stack_add(Tokenizer* const self, Paren paren)
 
 Tokenizer* const Tokenizer_new(ParserState *p, StreamInterface *si)
 {
-  Tokenizer *self = (Tokenizer *)mmrbc_alloc(sizeof(Tokenizer));
+  Tokenizer *self = (Tokenizer *)picorbc_alloc(sizeof(Tokenizer));
   self->p = p;
   { /* class vars in mmrbc.gem */
     self->currentToken = Token_new();
     self->paren_stack_num = -1;
-    self->line = (char *)mmrbc_alloc(sizeof(char) * (MAX_LINE_LENGTH));
+    self->line = (char *)picorbc_alloc(sizeof(char) * (MAX_LINE_LENGTH));
     self->line[0] = '\0';
     self->line_num = 0;
     self->pos = 0;
@@ -108,8 +108,8 @@ Tokenizer* const Tokenizer_new(ParserState *p, StreamInterface *si)
 void Tokenizer_free(Tokenizer *self)
 {
   Token_free(self->currentToken);
-  mmrbc_free(self->line);
-  mmrbc_free(self);
+  picorbc_free(self->line);
+  picorbc_free(self);
 }
 
 void tokenizer_readLine(Tokenizer* const self)
@@ -141,7 +141,7 @@ void tokenizer_pushToken(Tokenizer *self, int line_num, int pos, Type type, char
   self->currentToken->pos = pos;
   self->currentToken->line_num = line_num;
   self->currentToken->type = type;
-  self->currentToken->value = (char *)mmrbc_alloc(sizeof(char) * (strlen(value) + 1));
+  self->currentToken->value = (char *)picorbc_alloc(sizeof(char) * (strlen(value) + 1));
   self->currentToken->value[0] = '\0';
   strsafecpy(self->currentToken->value, value, strlen(value) + 1);
   DEBUGP("Pushed token: `%s`", self->currentToken->value);
@@ -153,12 +153,12 @@ void tokenizer_pushToken(Tokenizer *self, int line_num, int pos, Type type, char
 }
 
 /*
- * Replace null letter with "\xF5MMRUBYNULL\xF5"
- *  -> see also replace_mmruby_null();
+ * Replace null letter with "\xF5PICORUBYNULL\xF5"
+ *  -> see also replace_picoruby_null();
  */
-#define REPLACE_NULL_MMRUBY \
+#define REPLACE_NULL_PICORUBY \
   do { \
-    strsafecat(value, "\xF5MMRUBYNULL", MAX_TOKEN_LENGTH); \
+    strsafecat(value, "\xF5PICORUBYNULL", MAX_TOKEN_LENGTH); \
     c[0] = '\xF5'; \
   } while (0)
 
@@ -203,7 +203,7 @@ retry:
         lazyToken->line_num = self->line_num;
         lazyToken->pos = self->pos;
         lazyToken->type = STRING_END;
-        lazyToken->value = (char *)mmrbc_alloc(sizeof(char) *(2));
+        lazyToken->value = (char *)picorbc_alloc(sizeof(char) *(2));
         *(lazyToken->value) = self->modeTerminater;
         *(lazyToken->value + 1) = '\0';
         lazyToken->state = EXPR_END;
@@ -254,7 +254,7 @@ retry:
         lazyToken->line_num = self->line_num;
         lazyToken->pos = self->pos;
         lazyToken->type = STRING_END;
-        lazyToken->value = (char *)mmrbc_alloc(sizeof(char) *(2));
+        lazyToken->value = (char *)picorbc_alloc(sizeof(char) *(2));
         *(lazyToken->value) = self->modeTerminater;
         *(lazyToken->value + 1) = '\0';;
         lazyToken->state = EXPR_END;
@@ -318,7 +318,7 @@ retry:
            */
           regexResult[0].value[3] = '\0'; /* maximum 3 digits */
           c[0] = strtol(regexResult[0].value, NULL, 8) % 0x100;
-          if (c[0] == 0) REPLACE_NULL_MMRUBY;
+          if (c[0] == 0) REPLACE_NULL_PICORUBY;
           self->pos += strlen(regexResult[0].value) - 1;
         } else {
           switch (self->line[self->pos]) {
@@ -339,7 +339,7 @@ retry:
               if (Regex_match3(&(self->line[self->pos]), "^([0-9a-fA-F]+)", regexResult)) {
                 regexResult[0].value[2] = '\0'; /* maximum 2 digits */
                 c[0] = strtol(regexResult[0].value, NULL, 16);
-                if (c[0] == '\0') REPLACE_NULL_MMRUBY;
+                if (c[0] == '\0') REPLACE_NULL_PICORUBY;
               } else {
                 ERRORP("Invalid hex escape");
                 self->p->error_count++;
@@ -369,7 +369,7 @@ retry:
         lazyToken->line_num = self->line_num;
         lazyToken->pos = self->pos;
         lazyToken->type = STRING_END;
-        lazyToken->value = (char *)mmrbc_alloc(sizeof(char) *(2));
+        lazyToken->value = (char *)picorbc_alloc(sizeof(char) *(2));
         *(lazyToken->value) = self->modeTerminater;
         *(lazyToken->value + 1) = '\0';
         lazyToken->state = EXPR_END;

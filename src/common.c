@@ -5,7 +5,7 @@
 
 #include "mrubyc/src/alloc.h"
 
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
   /* GLOBAL */
   int alloc_count = 0;
   int free_count = 0;
@@ -34,13 +34,13 @@
       }
     }
   }
-#endif /* MMRBC_DEBUG */
+#endif /* PICORBC_DEBUG */
 
-void *mmrbc_alloc(size_t size)
+void *picorbc_alloc(size_t size)
 {
   void *ptr;
-  ptr = MMRBC_ALLOC(size);
-#ifdef MMRBC_DEBUG
+  ptr = PICORBC_ALLOC(size);
+#ifdef PICORBC_DEBUG
   DEBUGP("alloc_count: %d, ptr: %p, size: %d", alloc_count, ptr, (int)size);
   print_memory();
   alloc_count++;
@@ -62,12 +62,12 @@ void *mmrbc_alloc(size_t size)
   return ptr;
 }
 
-void mmrbc_free(void *ptr)
+void picorbc_free(void *ptr)
 {
   if (ptr == NULL) return;
   DEBUGP("free: %p", ptr);
-  MMRBC_FREE(ptr);
-#ifdef MMRBC_DEBUG
+  PICORBC_FREE(ptr);
+#ifdef PICORBC_DEBUG
   print_memory();
   free_count++;
   AllocList *ah = last_alloc;

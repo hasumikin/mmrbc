@@ -1,5 +1,6 @@
 *.o
 *.a
-mmruby
-mmrbc
-mmirb
+picoruby
+picorbc
+picoirb
+picoshell

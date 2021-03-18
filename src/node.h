@@ -1,5 +1,5 @@
-#ifndef MMRBC_NODE_H_
-#define MMRBC_NODE_H_
+#ifndef PICORBC_NODE_H_
+#define PICORBC_NODE_H_
 
 #include <stdint.h>
 #include <stdbool.h>

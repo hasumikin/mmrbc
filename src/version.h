@@ -1,6 +1,6 @@
-#ifndef MMRBC_VERSION_H_
-#define MMRBC_VERSION_H_
+#ifndef PICORBC_VERSION_H_
+#define PICORBC_VERSION_H_
 
-#define MMRBC_VERSION "0.0.1"
+#define PICORBC_VERSION "0.0.1"
 
 #endif

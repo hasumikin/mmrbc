@@ -1,5 +1,5 @@
-#ifndef MMRBC_MMRBC_H_
-#define MMRBC_MMRBC_H_
+#ifndef PICORBC_PICORBC_H_
+#define PICORBC_PICORBC_H_
 
 #include "banned.h"
 #include "version.h"
@@ -12,4 +12,4 @@
 #include "stream.h"
 #include "ruby-lemon-parse/parse.h"
 
-#endif /* MMRBC_MMRBC_H_ */
+#endif /* PICORBC_PICORBC_H_ */

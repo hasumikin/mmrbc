@@ -1,4 +1,4 @@
-class MethodTest < MmrubyTest
+class MethodTest < PicoRubyTest
   desc "Integer class"
   assert_equal(<<~RUBY, "1234")
     puts 1234.to_s

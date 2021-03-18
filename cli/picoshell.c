@@ -6,14 +6,14 @@
 
 #include "../src/mrubyc/src/mrubyc.h"
 
-#if defined(MMRBC_DEBUG) && !defined(MRBC_ALLOC_LIBC)
+#if defined(PICORBC_DEBUG) && !defined(MRBC_ALLOC_LIBC)
   #include "../src/mrubyc/src/alloc.c"
 #endif
 
-#include "../src/mmrbc.h"
+#include "../src/picorbc.h"
 
 #include "heap.h"
-#include "mmirb_lib/shell.c"
+#include "picoshell_lib/shell.c"
 
 int loglevel;
 
@@ -94,7 +94,7 @@ c_getc(mrbc_vm *vm, mrbc_value *v, int argc)
 static void
 c_gets(mrbc_vm *vm, mrbc_value *v, int argc)
 {
-  char *buf = mmrbc_alloc(BUFLEN + 1);
+  char *buf = picorbc_alloc(BUFLEN + 1);
   int len;
   len = hal_read(1, buf, BUFLEN);
   if (len == -1) {
@@ -107,7 +107,7 @@ c_gets(mrbc_vm *vm, mrbc_value *v, int argc)
   } else {
     FATALP("This should not happen (c_gets)");
   }
-  mmrbc_free(buf);
+  picorbc_free(buf);
 }
 
 static void
@@ -169,12 +169,29 @@ void vm_run(uint8_t *mrb)
 
 static ParserState *p;
 
+static Lvar *lvar = NULL;
+static Symbol *symbol = NULL;
+static Literal *literal = NULL;
+static StringPool *string_pool = NULL;
+static unsigned int sp = 1;
+static unsigned int max_sp = 1;
+static unsigned int nlocals = 0;
+
 #define NODE_BOX_SIZE 30
 
 static void
 c_compile(mrbc_vm *vm, mrbc_value *v, int argc)
 {
-  if (firstRun) p = Compiler_parseInitState(NODE_BOX_SIZE);
+  p = Compiler_parseInitState(NODE_BOX_SIZE);
+  if (!firstRun) {
+    p->scope->nlocals = nlocals;
+    p->scope->lvar    = lvar;
+    p->scope->symbol  = symbol;
+    p->scope->literal = literal;
+    p->current_string_pool = string_pool;
+    p->scope->sp      = sp;
+    p->scope->max_sp  = max_sp;
+  }
   StreamInterface *si = StreamInterface_new((char *)GET_STRING_ARG(1), STREAM_TYPE_MEMORY);
   if (Compiler_compile(p, si)) {
     SET_TRUE_RETURN();
@@ -188,7 +205,19 @@ static void
 c_execute_vm(mrbc_vm *vm, mrbc_value *v, int argc)
 {
   vm_run(p->scope->vm_code);
-  SET_RETURN(c_vm->current_regs[p->scope->sp - 1]);
+  SET_RETURN((mrbc_value)c_vm->current_regs[p->scope->sp]);
+  lvar = p->scope->lvar;
+  symbol = p->scope->symbol;
+  literal = p->scope->literal;
+  string_pool = p->current_string_pool;
+  sp = p->scope->sp;
+  max_sp = p->scope->max_sp;
+  nlocals = p->scope->nlocals;
+  p->current_string_pool = NULL;
+  p->scope->lvar = NULL;
+  p->scope->symbol = NULL;
+  p->scope->literal = NULL;
+  Compiler_parserStateFree(p);
 }
 
 #define FREE_HEADER "          total       used       free       frag\r\n"
@@ -196,7 +225,7 @@ c_execute_vm(mrbc_vm *vm, mrbc_value *v, int argc)
 static void
 c_free(mrbc_vm *vm, mrbc_value *v, int argc)
 {
-#if defined(MMRBC_DEBUG) && !defined(MRBC_ALLOC_LIBC)
+#if defined(PICORBC_DEBUG) && !defined(MRBC_ALLOC_LIBC)
   int total;
   int used;
   int free;
@@ -206,7 +235,7 @@ c_free(mrbc_vm *vm, mrbc_value *v, int argc)
   hal_write(1, FREE_HEADER, strlen(FREE_HEADER));
   snprintf(result, 128, "Mem: %10d %10d %10d %10d\r\n", total, used, free, fragmentation);
   hal_write(1, result, strlen(result));
-  mrbc_alloc_print_memory_pool();
+//  mrbc_alloc_print_memory_pool();
 #else
   hal_write(1, FREE_DOES_NOT_WORK, strlen(FREE_DOES_NOT_WORK));
 #endif

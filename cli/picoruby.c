@@ -4,7 +4,7 @@
 
 #include "../src/mrubyc/src/mrubyc.h"
 
-#include "../src/mmrbc.h"
+#include "../src/picorbc.h"
 
 #include "heap.h"
 
@@ -46,14 +46,14 @@ int handle_opt(int argc, char * const *argv, char **oneliner)
     switch (opt) {
       case 'v':
         DEBUGP("v add: %p\n", optarg);
-        fprintf(stdout, "mini mruby compiler %s\n", MMRBC_VERSION);
+        fprintf(stdout, "pico ruby %s\n", PICORBC_VERSION);
         return -1;
       case 'e':
         *oneliner = optarg;
         break;
       case 'l':
         DEBUGP("l add: %p\n", optarg);
-        #ifndef MMRBC_DEBUG
+        #ifndef PICORBC_DEBUG
           fprintf(stderr, "[ERROR] `--loglevel=[level]` option is only valid if you made executable without -DNDEBUG\n");
           return 1;
         #endif
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     si = StreamInterface_new(oneliner, STREAM_TYPE_MEMORY);
   } else {
     if ( !argv[optind] ) {
-      ERRORP("mmruby: no program file given");
+      ERRORP("picoruby: no program file given");
       return 1;
     }
     si = StreamInterface_new(argv[optind], STREAM_TYPE_FILE);
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 
   StreamInterface_free(si);
   Compiler_parserStateFree(p);
-#ifdef MMRBC_DEBUG
+#ifdef PICORBC_DEBUG
   memcheck();
 #endif
   return ret;

@@ -1,4 +1,4 @@
-class DefTest < MmrubyTest
+class DefTest < PicoRubyTest
   desc "def method without arg"
   assert_equal(<<~RUBY, "My method!")
     def my_method

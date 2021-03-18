@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mmrbc.h"
+#include "picorbc.h"
 #include "common.h"
 #include "my_regex.h"
 
@@ -18,10 +18,10 @@ PregCache *global_preg_cache;
 void MyRegex_setup(bool use_global_preg_cache)
 {
 #ifndef MRBC_ALLOC_LIBC
-  RegexSetAllocProcs(mmrbc_alloc, mmrbc_free);
+  RegexSetAllocProcs(picorbc_alloc, picorbc_free);
 #endif
   if (use_global_preg_cache) {
-    global_preg_cache = mmrbc_alloc(sizeof(PregCache) * PREG_CACHE_SIZE);
+    global_preg_cache = picorbc_alloc(sizeof(PregCache) * PREG_CACHE_SIZE);
     memset(global_preg_cache, 0, sizeof(PregCache) * PREG_CACHE_SIZE);
   } else {
     global_preg_cache = NULL;
@@ -43,7 +43,7 @@ void MyRegexCache_free(void)
 {
   if (global_preg_cache == NULL) return;
   regex_cache_free();
-  mmrbc_free(global_preg_cache);
+  picorbc_free(global_preg_cache);
 }
 
 bool regex_match(char *str, const char *pattern, bool resultRequired, RegexResult *result)
@@ -66,7 +66,7 @@ bool regex_match(char *str, const char *pattern, bool resultRequired, RegexResul
       cache = global_preg_cache;
     }
   } else {
-    cache = mmrbc_alloc(sizeof(PregCache));
+    cache = picorbc_alloc(sizeof(PregCache));
     cache->preg.atoms = NULL;
   }
 
@@ -103,7 +103,7 @@ bool regex_match(char *str, const char *pattern, bool resultRequired, RegexResul
 
   if (global_preg_cache == NULL) {
     regfree(&cache->preg);
-    mmrbc_free(cache);
+    picorbc_free(cache);
   }
 
   return status;

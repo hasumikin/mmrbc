@@ -1,5 +1,5 @@
-#ifndef MMRBC_SCOPE_H_
-#define MMRBC_SCOPE_H_
+#ifndef PICORBC_SCOPE_H_
+#define PICORBC_SCOPE_H_
 
 #include <stdint.h>
 

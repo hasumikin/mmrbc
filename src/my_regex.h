@@ -1,5 +1,5 @@
-#ifndef MMRBC_REGEX_H_
-#define MMRBC_REGEX_H_
+#ifndef PICORBC_REGEX_H_
+#define PICORBC_REGEX_H_
 
 #include <stdint.h>
 #include "regex_light/src/regex.h"
