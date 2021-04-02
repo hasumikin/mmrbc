@@ -782,10 +782,6 @@ void gen_if(Scope *scope, Node *node)
   JmpLabel *label_false = Scope_reserveJmpLabel(scope);
   /* condition true */
   codegen(scope, node->cons.cdr->cons.car);
-  Scope_pop(scope);
-//  Scope_pushCode(OP_MOVE);
-//  Scope_pushCode(scope->sp);
-//  Scope_pushCode(start_reg);
   Scope_pushCode(OP_JMP);
   JmpLabel *label_end = Scope_reserveJmpLabel(scope);
   /* condition false */
@@ -910,7 +906,7 @@ void gen_irep(Scope *scope, Node *node)
       Scope_push(scope);
     }
     Scope_pushCode(OP_RETURN);
-    Scope_pushCode(--scope->sp);
+    Scope_pushCode(scope->sp - 1);
   }
   Scope_finish(scope);
   scope = scope_unnest(scope);

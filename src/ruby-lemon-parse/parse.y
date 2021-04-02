@@ -46,6 +46,7 @@
 %type basic_symbol  { const char* }
 %type operation2    { const char* }
 %type f_norm_arg    { const char* }
+%type f_block_arg   { const char* }
 
 %include {
   #include <stdlib.h>

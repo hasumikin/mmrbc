@@ -36,9 +36,8 @@ print_lv_ab(void *dummy, uint8_t *irep, uint16_t a, uint16_t b)
 }
 
 char*
-mrb_sym_dump(void *dummy, uint16_t b)
+mrb_sym_dump(char *s, uint16_t b)
 {
-  char s[10];
   sprintf(s, "%d", b);
   return s;
 }
@@ -48,7 +47,7 @@ mrb_sym_dump(void *dummy, uint16_t b)
 void
 Dump_codeDump(uint8_t *irep)
 {
-  void *mrb = NULL;
+  char mrb[10];
   uint32_t len = 0;
   len += *(irep + 10) << 24;
   len += *(irep + 11) << 16;
