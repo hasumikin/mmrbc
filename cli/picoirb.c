@@ -33,7 +33,7 @@ void vm_restart(struct VM *vm)
 
 static uint8_t heap[HEAP_SIZE];
 
-void
+int
 start_irb(void)
 {
   bool firstRun = true;
@@ -47,7 +47,7 @@ start_irb(void)
   c_vm = mrbc_vm_open(NULL);
   if(c_vm == NULL) {
     fprintf(stderr, "Error: Can't open VM.\n");
-    return;
+    return 1;
   }
 
   ParserState *p;// = Compiler_parseInitState(NODE_BOX_SIZE);
@@ -74,14 +74,17 @@ start_irb(void)
     }
 
     printf("picoirb> ");
-    fgets(script, sizeof(script), stdin);
+    if (fgets(script, sizeof(script), stdin) == NULL) {
+      fprintf(stderr, "Error: fgets() failed.\n");
+      return 1;
+    };
     script[strlen(script) - 1] = '\0';
     si = StreamInterface_new(script, STREAM_TYPE_MEMORY);
 
     if (Compiler_compile(p, si)) {
       if(mrbc_load_mrb(c_vm, p->scope->vm_code) != 0) {
         fprintf(stderr, "Error: Illegal bytecode.\n");
-        return;
+        return 1;
       }
       if (!firstRun) {
         vm_restart(c_vm);
@@ -118,6 +121,5 @@ int
 main(int argc, char *argv[])
 {
   loglevel = LOGLEVEL_WARN;
-  start_irb();
-  return 0;
+  return start_irb();
 }

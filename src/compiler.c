@@ -125,7 +125,7 @@ bool Compiler_compile(ParserState *p, StreamInterface *si)
               && topToken->type == STRING_END) {
             Parse(parser, STRING, ""); /* to help pareser */
           }
-          if (topToken->type != STRING_END) {
+          if (topToken->type != STRING_END && topToken->type != COMMENT) {
             Parse(parser, topToken->type, string);
           }
           if (p->error_count != 0) {

@@ -33,7 +33,6 @@ while true
   while !fd_empty? do
     c = getc
     break if c == nil
-    # print c.ord.to_s
     case c.ord
     when 7 # ESC
       exit_shell

@@ -2,7 +2,7 @@ CFLAGS += -Wall -Wpointer-arith -std=gnu99
 AR := ar
 CC := gcc
 TARGET := libpicorbc.a
-SRCS := compiler.c common.c token.c tokenizer.c generator.c my_regex.c scope.c node.c stream.c
+SRCS := compiler.c common.c token.c tokenizer.c generator.c my_regex.c scope.c node.c stream.c dump.c
 OBJS := $(SRCS:%.c=%.o)
 DEPS := $(SRCS:%.c=%.d)
 

@@ -176,7 +176,9 @@ int Tokenizer_advance(Tokenizer* const self, bool recursive)
 retry:
   memset(value, '\0', MAX_TOKEN_LENGTH);
   Type type = ON_NONE;
-  memset(c, '\0', sizeof(c));
+  c[0] = '\0';
+  c[1] = '\0';
+  c[2] = '\0';
 
   RegexResult regexResult[REGEX_MAX_RESULT_NUM];
 
@@ -440,6 +442,11 @@ retry:
           case '<': type = LSHIFT; break;
           case '=': type = LEQ; break;
         }
+        if (self->state == EXPR_FNAME || self->state == EXPR_DOT) {
+          self->state = EXPR_ARG;
+        } else {
+          self->state = EXPR_BEG;
+        }
         break;
       case '>':
         switch (value[1]) {
@@ -514,7 +521,6 @@ retry:
       strsafecpy(value, &(self->line[self->pos]), MAX_TOKEN_LENGTH);
       if (value[strlen(value) - 1] == '\n') value[strlen(value) - 1] = '\0'; /* eliminate \n */
       type = COMMENT;
-      self->state = EXPR_BEG;
     } else if (self->line[self->pos] == ' ' || self->line[self->pos] == '\t') {
       Regex_match3(&(self->line[self->pos]), "^(\\s+)", regexResult);
       strsafecpy(value, regexResult[0].value, MAX_TOKEN_LENGTH);

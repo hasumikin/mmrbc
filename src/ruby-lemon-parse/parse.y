@@ -405,13 +405,14 @@
   static void
   local_add_f(ParserState *p, const char *a)
   {
-    // TODO
+    // different way from mruby...
+    Scope_newLvar(p->scope, a, p->scope->sp++);
   }
 
   static Node*
   new_arg(ParserState *p, const char* a)
   {
-    Scope_newLvar(p->scope, a, p->scope->sp++);
+    Scope_newLvar(p->scope, a, p->scope->sp);
     return list2(atom(ATOM_arg), literal(a));
   }
 
@@ -426,18 +427,17 @@
     );
   }
 
-  static Node*
-  new_args_tail(ParserState *p, Node *kws, Node *kwrest, const char *blk)
-  {
-    // TODO
-    Node *node = NULL;
-    return node;
-  }
-
   static void
   local_add_blk(ParserState *p, const char *blk)
   {
-    // TODO
+    local_add_f(p, blk ? blk : "&");
+  }
+
+  static Node*
+  new_args_tail(ParserState *p, Node *kws, Node *kwrest, const char *blk)
+  {
+    local_add_blk(p, blk);
+    return list4(atom(ATOM_args_tail), kws, kwrest, literal(blk));
   }
 
   /* (:dstr . a) */
@@ -1086,10 +1086,23 @@ f_arglist(A)  ::= f_args(B) term. {
 f_args(A) ::= f_arg(B) opt_args_tail(C). {
                 A = new_args(p, B, 0, 0, 0, C);
               }
+f_args(A) ::= args_tail(B). {
+                A = new_args(p, 0, 0, 0, 0, B);
+              }
 f_args(A) ::= . {
                 // local_add_f(p, intern_op(and))
                 A = new_args(p, 0, 0, 0, 0, 0);
               }
+
+args_tail(A) ::= f_block_arg(B). {
+                A = new_args_tail(p, 0, 0, B);
+              }
+
+blkarg_mark ::= AMPER.
+
+f_block_arg(A) ::= blkarg_mark IDENTIFIER(B). {
+                    A = B;
+                  }
 
 //opt_args_tail(A) ::= COMMA args_tail(B). {
 //                      A = B;

@@ -244,7 +244,7 @@ LvarScopeReg Scope_lvar_findRegnum(Scope *self, const char *name)
   LvarScopeReg scopeReg = {0, 0};
   Scope *scope = self;
   Lvar *lvar;
-  do {
+  while (1) {
     lvar = scope->lvar;
     while (lvar != NULL) {
       if (strcmp(lvar->name, name) == 0) {
@@ -253,10 +253,10 @@ LvarScopeReg Scope_lvar_findRegnum(Scope *self, const char *name)
       }
       lvar = lvar->next;
     }
-    if (scope->upper == NULL) break;
+    if (scope->upper == NULL || scope->lvar_top == true) break;
     scopeReg.scope_num++;
     scope = scope->upper;
-  } while (scope->lvar_top);
+  };
   return (LvarScopeReg){0, 0};
 }
 

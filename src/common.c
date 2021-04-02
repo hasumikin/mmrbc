@@ -99,7 +99,7 @@ char *strsafencpy(char *s1, const char *s2, size_t n, size_t max)
     strncpy(s1, s2, n + 1);
     DEBUGP("Copied: %s", s1);
   } else {
-    FATALP("Can't copy string!");
+    FATALP("Can't cpy string!");
   }
   return s1;
 }
@@ -116,7 +116,7 @@ char *strsafecat(char *dst, const char *src, size_t max)
   if (strlen(dst) + lensrc < max) {
     strncat(dst, src, lensrc);
   } else {
-    FATALP("Can't copy string!");
+    FATALP("Can't cat string!");
   }
   return dst;
 }

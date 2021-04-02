@@ -351,12 +351,12 @@ void gen_assign(Scope *scope, Node *node)
         codegen(scope, node->cons.cdr);
         Scope_pushCode(OP_MOVE);
         Scope_pushCode(num);
-        Scope_pushCode(scope->sp - 1);
+        Scope_pushCode(--scope->sp);
       } else {
-        Scope_push(scope);
         codegen(scope, node->cons.cdr);
         Scope_pushCode(OP_SETUPVAR);
-        Scope_pushCode(scope->sp - 1);
+        Scope_pushCode(--scope->sp);
+        Scope_push(scope);
         Scope_pushCode(lvar.reg_num);
         Scope_pushCode(lvar.scope_num - 1);
       }
@@ -400,7 +400,7 @@ void gen_assign(Scope *scope, Node *node)
       Scope_pushCode(OP_SEND);
       Scope_pushCode(scope->sp);
       const char *method_name = Node_literalName(node->cons.car->cons.cdr->cons.cdr->cons.car->cons.cdr);
-      int symIndex = Scope_assignSymIndex(scope, (const char *)method_name);
+      int symIndex = Scope_assignSymIndex(scope, method_name);
       Scope_pushCode(symIndex);
       Scope_pushCode(nargs + 1);
       break;
@@ -547,7 +547,14 @@ void gen_op_assign(Scope *scope, Node *node)
         Scope_pop(scope);
         Scope_pop(scope);
         Scope_pushCode(scope->sp);
-        method_name[strlen(method_name) - 1] = '\0';
+        /*
+         * method_name[strlen(method_name) - 1] = '\0';
+         * 👆🐛
+         * Because the same method_name may be reused
+         */
+        for (int i=1; i<strlen(method_name); i++) {
+          if (method_name[i] == '=') method_name[i] = '\0';
+        }
         Scope_pushCode(Scope_newSym(scope, (const char *)method_name));
         Scope_pushCode(1);
       }
@@ -606,14 +613,12 @@ void gen_op_assign(Scope *scope, Node *node)
       if (lvar.scope_num > 0) break;
       Scope_pushCode(num);
       Scope_pushCode(scope->sp);
-      Scope_push(scope);
       break;
     case (ATOM_at_ivar):
     case (ATOM_at_gvar):
     case (ATOM_at_const):
       Scope_pushCode(scope->sp);
       Scope_pushCode(num);
-      Scope_push(scope);
       break;
     default:
       break;
@@ -674,24 +679,26 @@ void gen_case_when(Scope *scope, Node *node, int cond_reg, JmpLabel *label_true[
     return;
   } else {
     gen_case_when(scope, node->cons.car->cons.cdr, cond_reg, label_true + 1);
+    scope->sp = cond_reg;
     codegen(scope, node->cons.car->cons.cdr->cons.cdr);
     Scope_pushCode(OP_MOVE);
     Scope_pushCode(scope->sp);
-    Scope_pushCode(cond_reg);
+    Scope_pushCode(cond_reg - 1);
     Scope_pushCode(OP_SEND);
-    Scope_pushCode(cond_reg + 1);
+    Scope_pushCode(cond_reg);
     Scope_pushCode(Scope_newSym(scope, "==="));
     Scope_pushCode(1);
     /* when condition matched */
     Scope_pushCode(OP_JMPIF);
-    Scope_pushCode(cond_reg + 1);
+    Scope_pushCode(cond_reg);
     *label_true = Scope_reserveJmpLabel(scope);
-    scope->sp = cond_reg + 1;
+    scope->sp = cond_reg;
   }
 }
 
 void gen_case(Scope *scope, Node *node)
 {
+Scope_pop(scope);
   /* count number of cases */
   Node *case_body = node->cons.cdr->cons.car;
   int i = 0;
@@ -703,7 +710,7 @@ void gen_case(Scope *scope, Node *node)
   JmpLabel *label_end_array[when_count];
   /* case expression */
   codegen(scope, node->cons.car);
-  int cond_reg = scope->sp - 1; /* cond_reg === when_expr */
+  int cond_reg = scope->sp; /* cond_reg === when_expr */
   /* each case_body */
   case_body = node->cons.cdr->cons.car;
   i = 0;
@@ -727,7 +734,16 @@ void gen_case(Scope *scope, Node *node)
     /* content */
     for (int j = 0; j < args_count; j++)
       Scope_backpatchJmpLabel(label_true_array[j], scope->vm_code_size);
-    codegen(scope, case_body->cons.cdr->cons.car);
+    { /* inside when */
+      int32_t current_vm_code_size = scope->vm_code_size;
+      codegen(scope, case_body->cons.cdr->cons.car);
+      /* if code was empty */
+      if (current_vm_code_size == scope->vm_code_size) {
+        Scope_pushCode(OP_LOADNIL);
+        Scope_pushCode(scope->sp);
+        Scope_push(scope);
+      }
+    }
     Scope_pushCode(OP_JMP);
     label_end_array[i++] = Scope_reserveJmpLabel(scope);
     /* next case */
@@ -758,6 +774,7 @@ void gen_case(Scope *scope, Node *node)
 
 void gen_if(Scope *scope, Node *node)
 {
+  int start_reg = scope->sp;
   /* assert condition */
   codegen(scope, node->cons.car);
   Scope_pushCode(OP_JMPNOT);
@@ -766,6 +783,9 @@ void gen_if(Scope *scope, Node *node)
   /* condition true */
   codegen(scope, node->cons.cdr->cons.car);
   Scope_pop(scope);
+//  Scope_pushCode(OP_MOVE);
+//  Scope_pushCode(scope->sp);
+//  Scope_pushCode(start_reg);
   Scope_pushCode(OP_JMP);
   JmpLabel *label_end = Scope_reserveJmpLabel(scope);
   /* condition false */
@@ -781,6 +801,7 @@ void gen_if(Scope *scope, Node *node)
   }
   /* right after KW_end */
   Scope_backpatchJmpLabel(label_end, scope->vm_code_size);
+  scope->sp = start_reg;
 }
 
 void gen_while(Scope *scope, Node *node, int op_jmp)
@@ -827,7 +848,7 @@ void gen_next(Scope *scope, Node *node)
 {
   Scope_push(scope);
   codegen(scope, node);
-  Scope_push(scope);
+  Scope_pop(scope);
   if (scope->nest_stack & 1) { /* BLOCK NEST */
     Scope_pushCode(OP_RETURN);
     Scope_pushCode(scope->sp);
@@ -854,12 +875,20 @@ void gen_redo(Scope *scope)
 uint32_t setup_parameters(Scope *scope, Node *node)
 {
   if (Node_atomType(node) != ATOM_block_parameters) return 0;
-  uint32_t bbb;
-  /* mandatory args */
-  uint8_t nmargs = gen_values(scope, node->cons.cdr->cons.car);
-  nmargs <<= 2;
-  bbb = (uint32_t)nmargs << 16;
+  uint32_t bbb = 0;
+  { /* mandatory args */
+    uint8_t nmargs = gen_values(scope, node->cons.cdr->cons.car);
+    nmargs <<= 2;
+    bbb = (uint32_t)nmargs << 16;
+  }
   /* TODO: rest, tail, etc. */
+  Node *tailargs = node->cons.cdr->cons.cdr->cons.cdr->cons.cdr->cons.car;
+  Node *args_tail = tailargs->cons.cdr->cons.car;
+  if (Node_atomType(args_tail) != ATOM_args_tail) return bbb;
+  { /* block */
+    if (args_tail->cons.cdr->cons.cdr->cons.cdr->cons.car->value.name)
+      bbb += 1;
+  }
   return bbb;
 }
 
@@ -871,9 +900,18 @@ void gen_irep(Scope *scope, Node *node)
   Scope_pushCode((int)(bbb >> 16 & 0xFF));
   Scope_pushCode((int)(bbb >> 8 & 0xFF));
   Scope_pushCode((int)(bbb & 0xFF));
-  codegen(scope, node->cons.cdr->cons.car);
-  Scope_pushCode(OP_RETURN);
-  Scope_pushCode(--scope->sp);
+  { /* inside def */
+    int32_t current_vm_code_size = scope->vm_code_size;
+    codegen(scope, node->cons.cdr->cons.car);
+    /* if code was empty */
+    if (current_vm_code_size == scope->vm_code_size) {
+      Scope_pushCode(OP_LOADNIL);
+      Scope_pushCode(scope->sp);
+      Scope_push(scope);
+    }
+    Scope_pushCode(OP_RETURN);
+    Scope_pushCode(--scope->sp);
+  }
   Scope_finish(scope);
   scope = scope_unnest(scope);
 }
@@ -939,7 +977,6 @@ void gen_class(Scope *scope, Node *node)
     node->cons.cdr->cons.car = NULL; /* Stop generating super class CONST */
     Scope_pushCode(OP_EXEC);
     Scope_pushCode(scope->sp);
-    Scope_push(scope);
     Scope_pushCode(scope->next_lower_number);
 
     scope = scope_nest(scope);
@@ -998,6 +1035,7 @@ void codegen(Scope *scope, Node *tree)
 //        if (pool->data[pool->index - 1] != scope->sp)
 //          if (pool->data[pool->index - 2] != OP_RETURN) {
             Scope_pushCode(OP_RETURN);
+            Scope_push(scope);
             Scope_pushCode(scope->sp);
 //          }
       Scope_pushCode(OP_STOP);
@@ -1151,10 +1189,17 @@ void memcpyFlattenCode(uint8_t *body, CodePool *code_pool)
   }
 }
 
+#ifdef PICORBC_DEBUG
+#include "dump.h"
+#endif
+
 uint8_t *writeCode(Scope *scope, uint8_t *pos)
 {
   if (scope == NULL) return pos;
   memcpyFlattenCode(pos, scope->first_code_pool);
+#ifdef PICORBC_DEBUG
+  Dump_codeDump(pos);
+#endif
   pos += scope->vm_code_size;
   pos = writeCode(scope->first_lower, pos);
   pos = writeCode(scope->next, pos);
