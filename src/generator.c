@@ -698,7 +698,7 @@ void gen_case_when(Scope *scope, Node *node, int cond_reg, JmpLabel *label_true[
 
 void gen_case(Scope *scope, Node *node)
 {
-Scope_pop(scope);
+  int start_reg = scope->sp;
   /* count number of cases */
   Node *case_body = node->cons.cdr->cons.car;
   int i = 0;
@@ -735,14 +735,17 @@ Scope_pop(scope);
     for (int j = 0; j < args_count; j++)
       Scope_backpatchJmpLabel(label_true_array[j], scope->vm_code_size);
     { /* inside when */
+      scope->sp = cond_reg;
       int32_t current_vm_code_size = scope->vm_code_size;
       codegen(scope, case_body->cons.cdr->cons.car);
       /* if code was empty */
       if (current_vm_code_size == scope->vm_code_size) {
         Scope_pushCode(OP_LOADNIL);
         Scope_pushCode(scope->sp);
-        Scope_push(scope);
       }
+      Scope_pushCode(OP_MOVE);
+      Scope_pushCode(start_reg);
+      Scope_pushCode(--scope->sp);
     }
     Scope_pushCode(OP_JMP);
     label_end_array[i++] = Scope_reserveJmpLabel(scope);
@@ -763,13 +766,13 @@ Scope_pop(scope);
     } else {
       /* no else clause */
       Scope_pushCode(OP_LOADNIL);
-      Scope_pushCode(scope->sp);
-      Scope_push(scope);
+      Scope_pushCode(start_reg);
       break;
     }
   }
   for (i = 0; i < when_count; i++)
     Scope_backpatchJmpLabel(label_end_array[i], scope->vm_code_size);
+  scope->sp = start_reg + 1;
 }
 
 void gen_if(Scope *scope, Node *node)
@@ -782,10 +785,14 @@ void gen_if(Scope *scope, Node *node)
   JmpLabel *label_false = Scope_reserveJmpLabel(scope);
   /* condition true */
   codegen(scope, node->cons.cdr->cons.car);
+  Scope_pushCode(OP_MOVE);
+  Scope_pushCode(start_reg);
+  Scope_pushCode(--scope->sp);
   Scope_pushCode(OP_JMP);
   JmpLabel *label_end = Scope_reserveJmpLabel(scope);
   /* condition false */
   Scope_backpatchJmpLabel(label_false, scope->vm_code_size);
+  scope->sp = start_reg;
   if (Node_atomType(node->cons.cdr->cons.cdr->cons.car) == ATOM_NONE) {
     /* right before KW_end */
     Scope_pushCode(OP_LOADNIL);
@@ -797,7 +804,6 @@ void gen_if(Scope *scope, Node *node)
   }
   /* right after KW_end */
   Scope_backpatchJmpLabel(label_end, scope->vm_code_size);
-  scope->sp = start_reg;
 }
 
 void gen_while(Scope *scope, Node *node, int op_jmp)
@@ -1031,7 +1037,6 @@ void codegen(Scope *scope, Node *tree)
 //        if (pool->data[pool->index - 1] != scope->sp)
 //          if (pool->data[pool->index - 2] != OP_RETURN) {
             Scope_pushCode(OP_RETURN);
-            Scope_push(scope);
             Scope_pushCode(scope->sp);
 //          }
       Scope_pushCode(OP_STOP);

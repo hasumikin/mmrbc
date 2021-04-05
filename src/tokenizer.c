@@ -581,8 +581,8 @@ retry:
           self->state = EXPR_END;
           break;
         case '{':
-          if (IS_ARG()) {
-            type = LBRACE_BLOCK; /* block (primary) */
+          if (IS_ARG() || self->state == EXPR_END || self->state == EXPR_ENDFN) {
+            type = LBRACE_BLOCK_PRIMARY; /* block (primary) */
           } else if (self->state == EXPR_ENDARG) {
             type = LBRACE_ARG;  /* block (expr) */
           } else {

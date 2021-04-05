@@ -191,3 +191,7 @@ clean:
 install:
 	cp cli/picorbc /usr/local/bin/picorbc
 	cp cli/picoruby /usr/local/bin/picoruby
+
+guard:
+	if [ ! -f Gemfile.lock ]; then bundle install; fi;
+	bundle exec guard start
