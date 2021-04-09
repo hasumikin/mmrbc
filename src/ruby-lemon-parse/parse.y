@@ -795,14 +795,14 @@ primary(A)  ::= KW_begin
                 KW_end. {
                   A = B;
                 }
-primary(A)  ::= LPAREN compstmt(B) RPAREN. {
+primary(A)  ::= LPAREN compstmt(B) rparen. {
                   A = B;
                 }
 primary(A)  ::= LBRACKET_ARRAY aref_args(B) RBRACKET. { A = new_array(p, B); }
 primary(A)  ::= LBRACE assoc_list(B) RBRACE. { A = new_hash(p, B); }
 primary(A)  ::= KW_return. { A = new_return(p, 0); }
-primary(A)  ::= KW_not LPAREN_EXPR expr(B) RPAREN. { A = call_uni_op(p, B, "!"); }
-primary(A)  ::= KW_not LPAREN_EXPR RPAREN. { A = call_uni_op(p, list1(atom(ATOM_kw_nil)), "!"); }
+primary(A)  ::= KW_not LPAREN_EXPR expr(B) rparen. { A = call_uni_op(p, B, "!"); }
+primary(A)  ::= KW_not LPAREN_EXPR rparen. { A = call_uni_op(p, list1(atom(ATOM_kw_nil)), "!"); }
 primary(A)  ::= operation(B) brace_block(C). {
                   A = new_fcall(p, B, list2(0, C));
                 }
@@ -981,10 +981,13 @@ call_op(A) ::= PERIOD. { A = '.'; }
 opt_paren_args ::= none.
 opt_paren_args ::= paren_args.
 
-paren_args(A) ::= LPAREN_EXPR opt_call_args(B) RPAREN. { A = B; }
+paren_args(A) ::= LPAREN_EXPR opt_call_args(B) rparen. { A = B; }
 
 opt_call_args ::= none.
 opt_call_args ::= call_args opt_terms.
+opt_call_args(A) ::= args(B) COMMA. {
+                       A = list2(B, 0);
+                     }
 
 case_body(A) ::= KW_when args(B) then
                  compstmt(C)
@@ -1073,7 +1076,7 @@ fname ::= IDENTIFIER.
 fname ::= CONSTANT.
 fname ::= FID.
 
-f_arglist_paren(A) ::= LPAREN_EXPR f_args(B) RPAREN. {
+f_arglist_paren(A) ::= LPAREN_EXPR f_args(B) rparen. {
                          A = B;
 //                         p->state = EXPR_BEG;
                          p->cmd_start = true;
@@ -1139,6 +1142,8 @@ operation2 ::= FID.
 
 opt_nl ::= .
 opt_nl ::= nl.
+
+rparen ::= opt_terms RPAREN.
 
 opt_terms ::= .
 opt_terms ::= terms.
