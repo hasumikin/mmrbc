@@ -24,7 +24,6 @@ void vm_restart(struct VM *vm)
   vm->callinfo_tail = NULL;
   vm->target_class = mrbc_class_object;
   vm->exc = 0;
-  vm->exception_tail = 0;
   vm->error_code = 0;
   vm->flag_preemption = 0;
 }

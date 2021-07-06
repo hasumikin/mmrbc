@@ -5,7 +5,7 @@
 
 #include "scope.h"
 
-#define HEADER_SIZE 34
+#define HEADER_SIZE 32
 #define FOOTER_SIZE 8
 
 typedef struct node Node;

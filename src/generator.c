@@ -11,7 +11,6 @@
 #include "generator.h"
 #include "mrubyc/src/opcode.h"
 #include "ruby-lemon-parse/parse_header.h"
-#include "ruby-lemon-parse/crc.c"
 
 #define END_SECTION_SIZE 8
 
@@ -34,8 +33,8 @@ bool hasCdr(Node *n) {
 }
 
 typedef enum misc {
-  NUM_POS,
-  NUM_NEG
+  NUM_POS = 0,
+  NUM_NEG = 1
 } Misc;
 
 void codegen(Scope *scope, Node *tree);
@@ -137,12 +136,12 @@ void gen_sym(Scope *scope, Node *node)
   Scope_pushCode(litIndex);
 }
 
-void gen_literal_numeric(Scope *scope, const char *num, LiteralType type, Misc pos_neg)
+void gen_literal_numeric(Scope *scope, const char *num, LiteralType type, Misc is_neg)
 {
   Scope_pushCode(OP_LOADL);
   Scope_pushCode(scope->sp);
   int litIndex;
-  if (pos_neg == NUM_NEG) {
+  if (is_neg) {
     size_t len = strlen(num) + 1;
     char lit[len];
     lit[0] = '-';
@@ -171,15 +170,15 @@ void cleanup_numeric_literal(char *lit)
   lit[strlen(result)] = '\0';
 }
 
-void gen_float(Scope *scope, Node *node, Misc pos_neg)
+void gen_float(Scope *scope, Node *node, Misc is_neg)
 {
   char *value = (char *)Node_valueName(node->cons.car);
   cleanup_numeric_literal(value);
-  gen_literal_numeric(scope, (const char *)value, FLOAT_LITERAL, pos_neg);
+  gen_literal_numeric(scope, (const char *)value, FLOAT_LITERAL, is_neg);
   Scope_push(scope);
 }
 
-void gen_int(Scope *scope, Node *node, Misc pos_neg)
+void gen_int(Scope *scope, Node *node, Misc is_neg)
 {
   char *value = (char *)Node_valueName(node->cons.car);
   cleanup_numeric_literal(value);
@@ -200,37 +199,51 @@ void gen_int(Scope *scope, Node *node, Misc pos_neg)
     default:
       val = strtol(value, NULL, 10);
   }
-  if (pos_neg == NUM_POS && 0 <= val && val <= 7) {
+  if (is_neg && 0 <= val && val <= 7) {
     Scope_pushCode(OP_LOADI_0 + val);
     Scope_pushCode(scope->sp);
-  } else if (pos_neg == NUM_NEG && 0 <= val && val <= 1) {
+  } else if (is_neg && 0 <= val && val <= 1) {
     Scope_pushCode(OP_LOADI_0 - val);
     Scope_pushCode(scope->sp);
   } else if (val <= 0xff) {
-    if (pos_neg == NUM_NEG) {
+    if (is_neg) {
       Scope_pushCode(OP_LOADINEG);
     } else {
       Scope_pushCode(OP_LOADI);
     }
     Scope_pushCode(scope->sp);
     Scope_pushCode(val);
-  } else if (val <= 0xffff) {
-    Scope_pushCode(OP_EXT2);
-    if (pos_neg == NUM_NEG) {
-      Scope_pushCode(OP_LOADINEG);
-    } else {
-      Scope_pushCode(OP_LOADI);
-    }
+  } else if (val <= 0x7fff && !is_neg) {
+    Scope_pushCode(OP_LOADI16);
     Scope_pushCode(scope->sp);
     Scope_pushCode(val >> 8);
     Scope_pushCode(val & 0xff);
+  } else if (val <= 0x8000 && is_neg) {
+    Scope_pushCode(OP_LOADI16);
+    Scope_pushCode(scope->sp);
+    Scope_pushCode((signed long)val*(-1) >> 8);
+    Scope_pushCode((signed long)val*(-1) & 0xff);
+  } else if (val <= 0x7fffffff && !is_neg) {
+    Scope_pushCode(OP_LOADI32);
+    Scope_pushCode(scope->sp);
+    Scope_pushCode(val >> 24);
+    Scope_pushCode(val >> 16 & 0xff);
+    Scope_pushCode(val >> 8 & 0xff);
+    Scope_pushCode(val & 0xff);
+  } else if (val <= 0x80000000 && is_neg) {
+    Scope_pushCode(OP_LOADI32);
+    Scope_pushCode(scope->sp);
+    Scope_pushCode((signed long)val*(-1) >> 24 & 0xff);
+    Scope_pushCode((signed long)val*(-1) >> 16 & 0xff);
+    Scope_pushCode((signed long)val*(-1) >> 8 & 0xff);
+    Scope_pushCode((signed long)val*(-1) & 0xff);
   } else {
     uint8_t digit = 2;
     unsigned long n = val;
     while (n /= 10) ++digit; /* count number of digit */
     char lit[digit];
     snprintf(lit, digit, "%ld", val);
-    gen_literal_numeric(scope, push_gen_literal(scope, lit), INTEGER_LITERAL, pos_neg);
+    gen_literal_numeric(scope, push_gen_literal(scope, lit), INT32_LITERAL, is_neg);
   }
   Scope_push(scope);
 }
@@ -1263,25 +1276,22 @@ void Generator_generate(Scope *scope, Node *root)
   int irepSize = Scope_updateVmCodeSizeThenReturnTotalSize(scope);
   int32_t codeSize = HEADER_SIZE + irepSize + END_SECTION_SIZE;
   uint8_t *vmCode = picorbc_alloc(codeSize);
-  memcpy(&vmCode[0], "RITE0006", 8);
-  vmCode[10] = (codeSize >> 24) & 0xff;
-  vmCode[11] = (codeSize >> 16) & 0xff;
-  vmCode[12] = (codeSize >> 8) & 0xff;
-  vmCode[13] = codeSize & 0xff;
-  memcpy(&vmCode[14], "MATZ0000", 8);
-  memcpy(&vmCode[22], "IREP", 4);
+  memcpy(&vmCode[0], "RITE0200", 8);
+  vmCode[8] = (codeSize >> 24) & 0xff;
+  vmCode[9] = (codeSize >> 16) & 0xff;
+  vmCode[10] = (codeSize >> 8) & 0xff;
+  vmCode[11] = codeSize & 0xff;
+  memcpy(&vmCode[12], "MATZ0000", 8);
+  memcpy(&vmCode[20], "IREP", 4);
   int sectionSize = irepSize + END_SECTION_SIZE + 4;
-  vmCode[26] = (sectionSize >> 24) & 0xff; // size of the section
-  vmCode[27] = (sectionSize >> 16) & 0xff;
-  vmCode[28] = (sectionSize >> 8) & 0xff;
-  vmCode[29] = sectionSize & 0xff;
-  memcpy(&vmCode[30], "0002", 4); // instruction version
+  vmCode[24] = (sectionSize >> 24) & 0xff; // size of the section
+  vmCode[25] = (sectionSize >> 16) & 0xff;
+  vmCode[26] = (sectionSize >> 8) & 0xff;
+  vmCode[27] = sectionSize & 0xff;
+  memcpy(&vmCode[28], "0300", 4); // instruction version
   writeCode(scope, &vmCode[HEADER_SIZE]);
   memcpy(&vmCode[HEADER_SIZE + irepSize], "END\0\0\0\0", 7);
   vmCode[codeSize - 1] = 0x08;
-  uint16_t crc = calc_crc_16_ccitt(&vmCode[10], codeSize - 10, 0);
-  vmCode[8] = (crc >> 8) & 0xff;
-  vmCode[9] = crc & 0xff;
   scope->vm_code = vmCode;
   scope->vm_code_size = codeSize;
 }

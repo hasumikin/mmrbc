@@ -33,8 +33,7 @@ DEPS := cli/heap.h cli/picoshell.c cli/picoruby.c cli/picorbc.c cli/picoirb.c \
         src/tokenizer.h src/tokenizer.c \
         src/version.h \
         src/dump.h src/dump.c \
-        src/ruby-lemon-parse/parse_header.h src/ruby-lemon-parse/parse.y \
-        src/ruby-lemon-parse/crc.c
+        src/ruby-lemon-parse/parse_header.h src/ruby-lemon-parse/parse.y
 TARGETS = $(BIN_DIR)/picorbc $(BIN_DIR)/picoruby $(BIN_DIR)/picoshell $(BIN_DIR)/picoirb
 
 default: host_debug
