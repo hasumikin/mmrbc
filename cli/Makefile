@@ -8,7 +8,7 @@ PICORBCDIR = ../src
 all: picorbc picoruby picoirb
 
 picorbc: picorbc.c heap.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lpicorbc
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lpicorbc
 
 picoruby: picoruby.c heap.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L../$(LIB_DIR) -lmrubyc -lpicorbc

@@ -80,14 +80,9 @@ Node *Node_new(ParserState *p)
 
 void Node_freeAllNode(NodeBox *box)
 {
-  Node *node;
   NodeBox *next;
   while (box) {
     next = box->next;
-    for (int i = 0; i < box->index + 1; i++) {
-      node = (Node *)((Node *)(&box->nodes) + i);
-      if (node == NULL) break;
-    }
     picorbc_free(box);
     box = next;
   }

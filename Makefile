@@ -92,7 +92,13 @@ arm_production:
 	  CC=$(CC_ARM) AR=$(AR_ARM)
 
 $(TARGETS): $(DEPS)
-	$(MAKE) build_lib \
+	$(MAKE) build_libpicorbc  CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" CC=$(CC) AR=$(AR) \
+	  LIB_DIR=$(LIB_DIR)
+	$(MAKE) build_picorbc CFLAGS="$(CFLAGS)" \
+	  LDFLAGS="$(LDFLAGS)" BIN_DIR=$(BIN_DIR) \
+	  CC=$(CC) AR=$(AR)
+	$(MAKE) build_mrblib BIN_DIR=$(BIN_DIR)
+	$(MAKE) build_libmrubyc \
 	  HAL_DIR=hal_user_reserved \
 	  CFLAGS="$(CFLAGS) -DMRBC_USE_HAL_USER_RESERVED" \
 	  LDFLAGS="$(LDFLAGS)" LIB_DIR=$(LIB_DIR) \
@@ -108,7 +114,7 @@ psoc5lp_lib:
 docker_psoc5lp_lib: $(DEPS)
 	mkdir -p $(LIB_DIR_PSOC5LP)
 	touch src/mrubyc/src/hal_psoc5lp/hal.c
-	$(MAKE) build_lib \
+	$(MAKE) build_libmrubyc \
 	  HAL_DIR=hal_psoc5lp \
 	  CFLAGS="$(CFLAGS) -I../../../include/psoc5lp -mcpu=cortex-m3 -mthumb -g -ffunction-sections -ffat-lto-objects -O0 -DNDEBUG -DMRBC_USE_HAL_PSOC5LP -DPTR_SIZE=4" \
 	  LDFLAGS=$(LDFLAGS) \
@@ -117,13 +123,15 @@ docker_psoc5lp_lib: $(DEPS)
 	  CC=$(CC_PSOC) AR=$(AR_PSOC)
 	rm src/mrubyc/src/hal_psoc5lp/hal.c
 
-build_lib: src/mrubyc/src/hal_user_reerved/hal.c
+build_libmrubyc: src/mrubyc/src/hal_user_reerved/hal.c
 	@echo "building libmrubyc.a ----------"
 	cd src/mrubyc/src ; \
 	  $(MAKE) clean all CFLAGS="$(CFLAGS) -DMRBC_CONVERT_CRLF" LDFLAGS="$(LDFLAGS)" HAL_DIR="$(HAL_DIR)" \
 	  CC=$(CC) AR=$(AR)
 	mv src/mrubyc/src/*.o $(LIB_DIR)/
 	mv src/mrubyc/src/libmrubyc.a $(LIB_DIR)/libmrubyc.a
+
+build_libpicorbc:
 	@echo "building libpicorbc.a ----------"
 	cd src ; \
 	  $(MAKE) clean all CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
@@ -131,19 +139,29 @@ build_lib: src/mrubyc/src/hal_user_reerved/hal.c
 	mv src/*.o $(LIB_DIR)/
 	mv src/libpicorbc.a $(LIB_DIR)/libpicorbc.a
 
+build_mrblib:
+	cd src/mrubyc/mrblib ; $(MAKE) MRBC=../../../$(BIN_DIR)/picorbc
+
 src/mrubyc/src/hal_user_reerved/hal.c:
 	cd src/mrubyc/src/hal_user_reserved/ ;\
 	  if [ ! -f ./hal.c ]; then ln -s ../../../../cli/picoshell_lib/hal_posix/hal.c ./hal.c; fi; \
 	  if [ ! -f ./hal.h ]; then ln -s ../../../../cli/picoshell_lib/hal_posix/hal.h ./hal.h; fi
 
-build_bin:
-	@echo "building picorbc picoruby picoirb ----------"
+build_picorbc:
+	@echo "building picorbc ----------"
 	cd cli ; \
-	  $(MAKE) all CFLAGS="$(CFLAGS)" \
+	  $(MAKE) picorbc CFLAGS="$(CFLAGS)" \
+	  LDFLAGS="$(LDFLAGS)" LIB_DIR=$(LIB_DIR) \
+	  CC=$(CC) AR=$(AR)
+	mv cli/picorbc $(BIN_DIR)/picorbc
+
+build_bin:
+	@echo "building picoruby picoirb ----------"
+	cd cli ; \
+	  $(MAKE) picoruby picoirb CFLAGS="$(CFLAGS)" \
 	  LDFLAGS="$(LDFLAGS)" LIB_DIR=$(LIB_DIR) \
 	  CC=$(CC) AR=$(AR)
 	mv cli/picoruby $(BIN_DIR)/picoruby
-	mv cli/picorbc $(BIN_DIR)/picorbc
 	mv cli/picoirb $(BIN_DIR)/picoirb
 
 gdb: host_debug
@@ -155,7 +173,7 @@ check: host_production
 	ruby ./test/helper/test.rb
 
 picoshell: host_debug
-	$(MAKE) build_lib \
+	$(MAKE) build_libmrubyc \
 	  HAL_DIR=hal_user_reserved \
 	  CFLAGS="$(CFLAGS) -DMRBC_USE_HAL_USER_RESERVED" \
 	  LDFLAGS="$(LDFLAGS)" LIB_DIR=$(LIB_DIR_HOST_DEBUG) \

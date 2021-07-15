@@ -24,12 +24,14 @@ int handle_opt(int argc, char * const *argv, char *out, char *b_symbol)
     { "loglevel", required_argument, NULL, 'l' },
     { "",         required_argument, NULL, 'B' },
     { "",         required_argument, NULL, 'o' },
+    { "",         no_argument,       NULL, 'E' },
+    { "remove-lv",no_argument,       NULL, 'R' },
     { 0,          0,                 0,     0  }
   };
   int opt;
   int longindex;
   loglevel = LOGLEVEL_INFO;
-  while ((opt = getopt_long(argc, argv, "vdbl:B:o:", longopts, &longindex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "vdblER:B:o:", longopts, &longindex)) != -1) {
     switch (opt) {
       case 'v':
         fprintf(stdout, "PicoRuby compiler %s\n", PICORBC_VERSION);
@@ -64,6 +66,9 @@ int handle_opt(int argc, char * const *argv, char *out, char *b_symbol)
         break;
       case 'o':
         strsafecpy(out, optarg, 254);
+        break;
+      case 'E':
+      case 'R':
         break;
       default:
         fprintf(stderr, "error! \'%c\' \'%c\'\n", opt, optopt);
@@ -133,7 +138,9 @@ int output(Scope *scope, char *in, char *out, char *b_symbol)
   return 0;
 }
 
+#ifdef PICORBC_DEBUG
 static uint8_t heap[HEAP_SIZE];
+#endif
 
 int main(int argc, char * const *argv)
 {
@@ -151,7 +158,9 @@ int main(int argc, char * const *argv)
 
   char *in = argv[optind];
 
+#ifdef PICORBC_DEBUG
   mrbc_init_alloc(heap, HEAP_SIZE);
+#endif
 
   StreamInterface *si = StreamInterface_new(in, STREAM_TYPE_FILE);
   if (si == NULL) return 1;
